@@ -1,71 +1,50 @@
-# 🌐 System Design Simulator
+# SysSim Pro: AI-Powered System Design Simulator
 
-An interactive, real-time platform to design, simulate, and analyze complex system architectures. Build distributed systems on a canvas, simulate traffic flows, and use AI to generate optimized designs.
+SysSim Pro is a high-fidelity, real-time system design simulation platform. It allows architects to build, stress-test, and observe complex distributed systems with an AI-driven design assistant and detailed telemetry analytics.
 
-![System Design Simulator](https://img.shields.io/badge/System_Design-Simulator-blue?style=for-the-badge)
-![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
+![SysSim Pro Dashboard](frontend/src/assets/hero.png)
 
-## 🚀 Key Features
+## 🚀 Features
 
-- **Interactive Canvas**: Drag-and-drop system components (Load Balancers, Databases, Microservices, Caches) using `@xyflow/react`.
-- **Real-time Simulation**: A high-performance Go-based engine that simulates traffic patterns, latency, and system load via WebSockets.
-- **AI Design Architect**: Generate complex system architectures from natural language prompts using integrated AI models (Llama 3.3).
-- **Dynamic Analytics**: Visualize system performance metrics (request throughput, error rates, resource utilization) with real-time charts.
-- **Containerized Architecture**: Fully Dockerized for seamless deployment and development.
+- **AI Architect (Grok Integration)**: Architect complex systems using natural language prompts (e.g., "Build a high-availability e-commerce system").
+- **3-Zone Professional UI**:
+  - **Global Header**: Real-time RPS (Requests Per Second) control and AI hub.
+  - **Component Library**: Labeled drag-and-drop toolkit for Clients, Load Balancers, API Servers, Databases, and more.
+  - **Analysis Sidebar**: Persistent telemetry graphs (Throughput, Latency) and AI-driven architectural advice.
+- **Stress Testing**: Real-time simulation of high-load scenarios with visual indicators for overloaded nodes and bottleneck detection.
+- **Diagnostic Reports**: Exportable JSON logs detailing peak RPS, average latency, and specific node failures for offline analysis.
+- **Live Load Animation**: Visual representation of traffic flow and congestion points.
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **UI Components**: [Tailwind CSS 4](https://tailwindcss.com/), [Lucide React](https://lucide.dev/)
-- **Graph Engine**: [@xyflow/react](https://reactflow.dev/) (React Flow)
-- **Visualization**: [Recharts](https://recharts.org/)
+- **Frontend**: React 19, TypeScript, Tailwind CSS 4, React Flow, Zustand, Recharts, Lucide Icons.
+- **Backend**: Go (Golang), Gin Framework, Gorilla WebSockets.
+- **AI**: Groq API (Llama 3.3) for intelligent architecture generation.
 
-### Backend
-- **Language**: [Go (Golang)](https://golang.org/)
-- **Web Framework**: [Gin Gonic](https://gin-gonic.com/)
-- **Real-time Communication**: [Gorilla WebSockets](https://github.com/gorilla/websocket)
-- **AI Integration**: Custom handlers for Llama 3.3 model integration via Grok API.
-- **Environment**: [Godotenv](https://github.com/joho/godotenv)
-
-## 🚦 Getting Started
+## 🏁 Getting Started
 
 ### Prerequisites
-- [Docker](https://www.docker.com/get-started) & [Docker Compose](https://docs.docker.com/compose/install/)
-- [Go](https://golang.org/doc/install) (for local development)
-- [Node.js](https://nodejs.org/) (for local development)
 
-### Quick Start with Docker
-The easiest way to run the entire stack is using Docker Compose:
+- [Go 1.21+](https://go.dev/dl/)
+- [Node.js 18+](https://nodejs.org/)
+- Groq API Key (for AI features)
 
-```bash
-docker-compose up --build
-```
-- **Frontend**: [http://localhost:80](http://localhost:80)
-- **Backend API**: [http://localhost:8080](http://localhost:8080)
+### Backend Setup
 
-### Local Development
-
-#### Backend
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
+1. Navigate to the `backend` directory.
+2. Create a `.env` file:
+   ```env
+   GROK_API_KEY=your_key_here
+   PORT=8080
    ```
-2. Create a `.env` file (see `.env.example` if available).
 3. Run the server:
    ```bash
    go run main.go
    ```
 
-#### Frontend
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+### Frontend Setup
+
+1. Navigate to the `frontend` directory.
 2. Install dependencies:
    ```bash
    npm install
@@ -75,34 +54,14 @@ docker-compose up --build
    npm run dev
    ```
 
-## 📂 Project Structure
+## 📊 Using the Simulator
 
-```text
-├── backend/            # Go Simulation Engine & API
-│   ├── engine/         # Simulation logic
-│   ├── handlers/       # HTTP and WebSocket handlers
-│   ├── models/         # Data structures
-│   └── main.go         # Entry point
-├── frontend/           # React + Vite Application
-│   ├── src/            # Source code
-│   │   ├── components/ # UI Components
-│   │   ├── store/      # Zustand state management
-│   │   └── types/      # TypeScript definitions
-│   └── index.html      # Entry point
-└── docker-compose.yml  # Multi-container orchestration
-```
-
-## 🧪 Simulation Engine
-The simulation engine runs in the background, calculating:
-- **Node Load**: Current request processing density.
-- **Connection Health**: Packet loss and latency simulation.
-- **Flow Control**: How data moves through load balancers and queues.
-
-## 🤖 AI Architect
-The AI Architect allows you to type:
-> "Design a highly available e-commerce system with a Redis cache and PostgreSQL replicas."
-
-It will automatically generate the nodes and edges on your canvas.
+1. **Design**: Drag components from the left sidebar or use the AI input in the header to generate a starting architecture.
+2. **Connect**: Link nodes using the handles to define traffic flow.
+3. **Simulate**: Adjust the **Input Load** slider and click **SIMULATE**.
+4. **Analyze**: Watch the right sidebar for real-time latency and throughput. If nodes turn red, they are bottlenecked.
+5. **Export**: Click the download icon in the header after stopping a simulation to save your diagnostic report.
 
 ## 📄 License
-This project is licensed under the MIT License.
+
+MIT License - see [LICENSE](LICENSE) for details.
