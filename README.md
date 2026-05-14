@@ -104,33 +104,6 @@ npm run dev
 
 ---
 
-## 🚢 Deployment Guide
-
-### Option 1: Docker (Recommended for Local/Self-Hosting)
-SysSim Pro is fully containerized. To launch the entire stack:
-```bash
-docker-compose up --build
-```
-*   **Frontend**: Accessible at `http://localhost:80`
-*   **Backend**: Accessible at `http://localhost:8080`
-
-### Option 2: Cloud Deployment (Render/Railway/Vercel)
-For a production-grade deployment, we recommend the following decoupled approach:
-
-#### 1. Backend (Go) -> [Render](https://render.com) or [Railway](https://railway.app)
-- Create a new **Web Service** and point it to the `backend/` directory.
-- Set the **Build Command**: `go build -o main .`
-- Set the **Start Command**: `./main`
-- Add your `GROK_API_KEY` to the Environment Variables.
-
-#### 2. Frontend (React) -> [Vercel](https://vercel.com) or [Netlify](https://netlify.com)
-- Deploy the `frontend/` directory.
-- Set the **Environment Variable** `VITE_API_URL` to your Backend URL (e.g., `https://syssim-api.onrender.com`).
-- Build Command: `npm run build`
-- Output Directory: `dist`
-
----
-
 ## 👨‍💻 Engineering Impact (Recruiter Focus)
 *   **Solved Complex State Management**: Managed real-time data synchronization between high-frequency WebSocket streams and a dynamic graph UI.
 *   **Optimized Performance**: Implemented efficient backend logic in Go to ensure low-latency simulation even with large architectural graphs.
