@@ -1,67 +1,79 @@
-# SysSim Pro: AI-Powered System Design Simulator
+# SysSim Pro | AI-Powered Distributed Systems Simulator
 
-SysSim Pro is a high-fidelity, real-time system design simulation platform. It allows architects to build, stress-test, and observe complex distributed systems with an AI-driven design assistant and detailed telemetry analytics.
+**A high-performance observability and simulation engine for architecting scalable distributed systems.**
 
-![SysSim Pro Dashboard](frontend/src/assets/hero.png)
+---
 
-## 🚀 Features
+## 🎯 Project Overview
 
-- **AI Architect (Grok Integration)**: Architect complex systems using natural language prompts (e.g., "Build a high-availability e-commerce system").
-- **3-Zone Professional UI**:
-  - **Global Header**: Real-time RPS (Requests Per Second) control and AI hub.
-  - **Component Library**: Labeled drag-and-drop toolkit for Clients, Load Balancers, API Servers, Databases, and more.
-  - **Analysis Sidebar**: Persistent telemetry graphs (Throughput, Latency) and AI-driven architectural advice.
-- **Stress Testing**: Real-time simulation of high-load scenarios with visual indicators for overloaded nodes and bottleneck detection.
-- **Diagnostic Reports**: Exportable JSON logs detailing peak RPS, average latency, and specific node failures for offline analysis.
-- **Live Load Animation**: Visual representation of traffic flow and congestion points.
+SysSim Pro is an engineering-first simulation platform designed to bridge the gap between static architecture diagrams and live system behavior. Built with a focus on **concurrency**, **real-time telemetry**, and **AI-assisted design**, it enables developers to visualize bottlenecks, optimize latency, and validate system designs under synthetic load before writing a single line of production code.
 
-## 🛠️ Tech Stack
+### 💡 Why I Built This
+Most system design tools are static drawing boards. SysSim Pro transforms design into a **dynamic diagnostic process**. It answers the critical question: *"Will my architecture survive 100k RPS?"* by simulating traffic flow, resource contention, and cascading failures in real-time.
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS 4, React Flow, Zustand, Recharts, Lucide Icons.
-- **Backend**: Go (Golang), Gin Framework, Gorilla WebSockets.
-- **AI**: Groq API (Llama 3.3) for intelligent architecture generation.
+---
 
-## 🏁 Getting Started
+## 🚀 Core Engineering Features
 
-### Prerequisites
+### 🧠 1. AI-Driven System Synthesis
+*   **LLM Integration**: Leverages the **Groq (Llama 3.3)** API to generate production-ready architecture patterns from natural language prompts.
+*   **Pattern Recognition**: Automatically suggests optimal placement for Load Balancers, CDNs, and Caches based on the user's performance requirements.
 
-- [Go 1.21+](https://go.dev/dl/)
-- [Node.js 18+](https://nodejs.org/)
-- Groq API Key (for AI features)
+### ⚡ 2. High-Performance Simulation Engine
+*   **Concurrency with Goroutines**: Built in **Go**, the backend engine handles complex graph traversals and traffic distribution using lightweight goroutines.
+*   **WebSocket Telemetry**: Real-time bidirectional communication provides sub-100ms updates on node health, RPS, and latency metrics.
 
-### Backend Setup
+### 📊 3. Observability & Diagnostics
+*   **Real-time Dashboards**: Integrated **Recharts** visualization for monitoring throughput and latency trends.
+*   **Dynamic Bottleneck Detection**: Visual indicators (red-pulse alerts) identify overloaded nodes based on configurable capacity thresholds.
+*   **Post-Mortem Reporting**: Generates exportable JSON diagnostic reports including Health Scores, Peak Load analysis, and Failure Root Causes.
 
-1. Navigate to the `backend` directory.
-2. Create a `.env` file:
-   ```env
-   GROK_API_KEY=your_key_here
-   PORT=8080
-   ```
-3. Run the server:
-   ```bash
-   go run main.go
-   ```
+---
 
-### Frontend Setup
+## 🛠️ Technical Stack
 
-1. Navigate to the `frontend` directory.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+| Category | Technology |
+| :--- | :--- |
+| **Frontend** | React 19 (Hooks, Context), TypeScript, Zustand (State Mgmt) |
+| **Visuals** | React Flow (Graph UI), Tailwind CSS 4, Lucide |
+| **Backend** | Go (Gin Framework), WebSockets |
+| **AI/LLM** | Groq API (Llama 3.3), Prompt Engineering |
+| **Infrastructure** | Docker, Docker-Compose |
 
-## 📊 Using the Simulator
+---
 
-1. **Design**: Drag components from the left sidebar or use the AI input in the header to generate a starting architecture.
-2. **Connect**: Link nodes using the handles to define traffic flow.
-3. **Simulate**: Adjust the **Input Load** slider and click **SIMULATE**.
-4. **Analyze**: Watch the right sidebar for real-time latency and throughput. If nodes turn red, they are bottlenecked.
-5. **Export**: Click the download icon in the header after stopping a simulation to save your diagnostic report.
+## 🏗️ Technical Architecture & Workflow
+
+1.  **Orchestration**: The UI (React) captures user intent and sends it to the AI Handler (Go).
+2.  **Simulation**: The Simulation Engine (Go) models traffic as a series of probabilistic events across the graph nodes.
+3.  **Visualization**: React Flow renders the graph while Zustand manages the global telemetry state for millisecond-accurate chart updates.
+
+---
+
+## 🏁 Installation & Deployment
+
+### Backend (Go)
+```bash
+cd backend
+go mod download
+go run main.go
+```
+
+### Frontend (React)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 👨‍💻 Engineering Impact (Recruiter Focus)
+*   **Solved Complex State Management**: Managed real-time data synchronization between high-frequency WebSocket streams and a dynamic graph UI.
+*   **Optimized Performance**: Implemented efficient backend logic in Go to ensure low-latency simulation even with large architectural graphs.
+*   **UX/UI for Complexity**: Designed a 3-zone diagnostic dashboard to present high-density data without overwhelming the user.
+
+---
 
 ## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License.
