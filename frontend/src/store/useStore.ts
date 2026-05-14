@@ -67,6 +67,9 @@ const initialEdges: Edge[] = [
   { id: 'e3-4', source: '3', target: '4' },
 ];
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
+
 export const useStore = create<SimulatorState>((set, get) => ({
   nodes: initialNodes,
   edges: initialEdges,
@@ -79,7 +82,7 @@ export const useStore = create<SimulatorState>((set, get) => ({
   generateAIDesign: async (prompt: string) => {
     console.log('Generating AI design for:', prompt);
     try {
-      const response = await axios.post('http://localhost:8080/api/ai/generate', { prompt });
+      const response = await axios.post(`${API_BASE_URL}/api/ai/generate`, { prompt });
       const { nodes: aiNodes, edges: aiEdges } = response.data;
 
       if (!aiNodes || aiNodes.length === 0) {
@@ -162,7 +165,7 @@ export const useStore = create<SimulatorState>((set, get) => ({
   },
 
   startSimulation: () => {
-    const socket = new WebSocket('ws://localhost:8080/ws');
+    const socket = new WebSocket(`${WS_BASE_URL}/ws`);
     
     socket.onopen = () => {
       const graph = {

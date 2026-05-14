@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
@@ -42,8 +44,13 @@ func main() {
 	r.GET("/ws", handleWebSocket)
 	r.POST("/api/ai/generate", handlers.GenerateDesign)
 
-	log.Println("Server starting on :8080")
-	r.Run(":8080")
+	port := "8080"
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
+	}
+
+	log.Println("Server starting on :" + port)
+	r.Run(":" + port)
 }
 
 func handleWebSocket(c *gin.Context) {
