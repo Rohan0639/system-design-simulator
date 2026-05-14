@@ -4,7 +4,7 @@ services:
     name: sys-design-sim-backend
     env: docker
     dockerContext: backend
-    dockerfilePath: Dockerfile
+    dockerfilePath: backend/Dockerfile
     plan: free
     region: singapore
     envVars:
@@ -20,7 +20,7 @@ services:
     name: sys-design-sim-frontend
     env: docker
     dockerContext: frontend
-    dockerfilePath: Dockerfile
+    dockerfilePath: frontend/Dockerfile
     plan: free
     region: singapore
     envVars:
