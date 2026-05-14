@@ -2,7 +2,7 @@
 
 SysSim Pro is a high-fidelity, real-time system design simulation platform. It allows architects to build, stress-test, and observe complex distributed systems with an AI-driven design assistant and detailed telemetry analytics.
 
-![SysSim Pro Dashboard](frontend/src/assets/hero.png)
+
 
 ## 🚀 Features
 
