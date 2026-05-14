@@ -30,6 +30,23 @@ Most system design tools are static drawing boards. SysSim Pro transforms design
 
 ---
 
+## 🛠️ How It Works & What It Does
+
+### 1. The Simulation Lifecycle (The "How")
+The platform operates on a **Decoupled Event-Driven Architecture**:
+1.  **Graph Mapping**: The UI serializes your visual architecture into a JSON-based Directed Acyclic Graph (DAG).
+2.  **Traffic Injection**: When you hit "Simulate," the **Go backend** initializes a traffic generator. This generator models requests as concurrent packets traversing the graph.
+3.  **Probabilistic modeling**: Each node (API Server, DB, etc.) has an internal state machine. If the incoming traffic exceeds the node's **Capacity**, the backend introduces **Latency Penalties** and marks the node as `overloaded`.
+4.  **Real-Time Feedback Loop**: Metrics are aggregated on the backend every 100ms and streamed via **WebSockets** to the React frontend, updating charts and node statuses instantly.
+
+### 2. AI Architecture Synthesis (The "What")
+Instead of starting from a blank canvas, you can use the **Grok AI Architect**:
+- **Prompt**: *"Design a global video streaming service with CDN caching and a redundant database."*
+- **Synthesis**: The LLM parses your performance and availability requirements.
+- **Auto-Provisioning**: The system automatically provisions the nodes, connects them with optimal paths, and sets realistic baseline capacities for each component.
+
+---
+
 ## 🛠️ Technical Stack
 
 | Category | Technology |
