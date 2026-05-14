@@ -1,4 +1,4 @@
-# SysSim Pro | AI-Powered Distributed Systems Simulator
+#Systems  Design Simulator
 
 **A high-performance observability and simulation engine for architecting scalable distributed systems.**
 
