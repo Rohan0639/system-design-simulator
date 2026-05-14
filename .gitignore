@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment Variables
+.env
+backend/.env
+frontend/.env
+*.env.local
+
+# Build outputs
+dist/
+build/
+bin/
+frontend/dist/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Project specifics
+.tempmediaStorage/
+artifacts/
+scratch/
