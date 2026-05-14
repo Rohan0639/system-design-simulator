@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
-	"github.com/user/system-design-simulator/engine"
-	"github.com/user/system-design-simulator/handlers"
-	"github.com/user/system-design-simulator/models"
+	"github.com/Rohan0639/system-design-simulator/backend/engine"
+	"github.com/Rohan0639/system-design-simulator/backend/handlers"
+	"github.com/Rohan0639/system-design-simulator/backend/models"
 )
 
 var upgrader = websocket.Upgrader{

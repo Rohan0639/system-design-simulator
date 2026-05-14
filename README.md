@@ -102,6 +102,14 @@ npm install
 npm run dev
 ```
 
+### Production Deployment
+This project is configured for split deployment:
+- **Backend**: Deployed on **Render** (via `render.yaml`) to support persistent WebSockets.
+- **Frontend**: Deployed on **Vercel** or **Render** (Root directory: `frontend`).
+
+For detailed instructions, see [deployment_guide.md](./deployment_guide.md).
+
+
 ---
 
 ## 👨‍💻 Engineering Impact (Recruiter Focus)

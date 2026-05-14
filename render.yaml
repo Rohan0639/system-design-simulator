@@ -4,14 +4,14 @@ services:
     name: sys-design-sim-backend
     env: docker
     dockerContext: backend
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: Dockerfile
     plan: free
-    region: singapore # Change to your preferred region
+    region: singapore
     envVars:
       - key: PORT
         value: 8080
       - key: GROK_API_KEY
-        sync: false # Set this in Render Dashboard
+        sync: false
       - key: XAI_ENDPOINT
         value: https://api.groq.com/openai/v1/chat/completions
 
@@ -20,12 +20,9 @@ services:
     name: sys-design-sim-frontend
     env: docker
     dockerContext: frontend
-    dockerfilePath: frontend/Dockerfile
+    dockerfilePath: Dockerfile
     plan: free
-    region: singapore # Change to your preferred region
+    region: singapore
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: sys-design-sim-backend
-          property: host
+        value: https://sys-design-sim-backend.onrender.com # Placeholder: Update this after backend is live

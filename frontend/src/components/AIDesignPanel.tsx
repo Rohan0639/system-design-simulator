@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sparkles, Loader2, Send } from 'lucide-react';
 import { useStore } from '../store/useStore';
 

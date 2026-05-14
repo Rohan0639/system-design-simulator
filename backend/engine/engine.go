@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/user/system-design-simulator/models"
+	"github.com/Rohan0639/system-design-simulator/backend/models"
 )
 
 type EventType string

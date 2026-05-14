@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const NodeWrapper = ({ children, label, icon: Icon, type, selected, status, currentRps }: any) => {
+const NodeWrapper = ({ label, icon: Icon, type, selected, status, currentRps }: any) => {
   const baseColors: Record<string, string> = {
     client: 'border-blue-500 bg-blue-500/10 text-blue-400',
     load_balancer: 'border-indigo-500 bg-indigo-500/10 text-indigo-400',

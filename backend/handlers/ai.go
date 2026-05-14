@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 	"github.com/gin-gonic/gin"
-	"github.com/user/system-design-simulator/models"
+	"github.com/Rohan0639/system-design-simulator/backend/models"
 )
 
 type xAIRequest struct {

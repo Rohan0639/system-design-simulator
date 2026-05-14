@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { 
   TrendingUp, 
   Clock, 
-  AlertCircle, 
   Zap,
   RotateCcw,
   BarChart2,
