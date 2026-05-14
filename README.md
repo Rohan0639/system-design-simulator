@@ -59,6 +59,25 @@ Instead of starting from a blank canvas, you can use the **Grok AI Architect**:
 
 ---
 
+## 📂 Project Structure
+
+```text
+├── backend/
+│   ├── engine/         # Core simulation logic (Goroutines & Graph Traversal)
+│   ├── handlers/       # WebSocket & AI API endpoints
+│   ├── models/         # Type definitions for Graphs and Metrics
+│   └── main.go         # Entry point & Router configuration
+├── frontend/
+│   ├── src/
+│   │   ├── components/ # Atomic UI components (Header, Sidebar, Metrics)
+│   │   ├── nodes/      # Custom React Flow node implementations
+│   │   ├── store/      # Zustand global state & telemetry aggregation
+│   │   └── App.tsx     # Main 3-zone layout orchestration
+└── docker-compose.yml  # Orchestration for full-stack local deployment
+```
+
+---
+
 ## 🏗️ Technical Architecture & Workflow
 
 1.  **Orchestration**: The UI (React) captures user intent and sends it to the AI Handler (Go).
