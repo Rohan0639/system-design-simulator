@@ -1,63 +1,54 @@
-#Systems  Design Simulator
+# ⚡ System Design Simulator
 
-**A high-performance observability and simulation engine for architecting scalable distributed systems.**
+**A high-performance observability and simulation engine for architecting scalable distributed systems with AI-assisted design.**
 
-[**🚀 View Live Demo**](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)
+[![Vercel Deployment](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&logoColor=white)](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)
+[![Backend Engine](https://img.shields.io/badge/Backend-Go%20(Gin)-blue?logo=go&logoColor=white)](https://sys-design-sim-backend.onrender.com/health)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## 🎯 Project Overview
 
-SysSim Pro is an engineering-first simulation platform designed to bridge the gap between static architecture diagrams and live system behavior. Built with a focus on **concurrency**, **real-time telemetry**, and **AI-assisted design**, it enables developers to visualize bottlenecks, optimize latency, and validate system designs under synthetic load before writing a single line of production code.
+The **System Design Simulator** is an engineering-first simulation platform designed to bridge the gap between static architecture diagrams and live system behavior. Built with a focus on **concurrency**, **real-time telemetry**, and **AI-assisted design**, it transforms system design from a static drawing board into a **dynamic diagnostic process**.
 
-### 💡 Why I Built This
-Most system design tools are static drawing boards. SysSim Pro transforms design into a **dynamic diagnostic process**. It answers the critical question: *"Will my architecture survive 100k RPS?"* by simulating traffic flow, resource contention, and cascading failures in real-time.
+It answers critical architectural questions: *“Will my database survive 10k RPS?”*, *“Where is the single point of failure in my ingress flow?”*, or *“How will introducing a Redis cache affect end-to-end user latency?”* under simulated synthetic load in real-time.
 
 ---
 
 ## 🚀 Core Engineering Features
 
-### 🧠 1. AI-Driven System Synthesis
-*   **LLM Integration**: Leverages the **Groq (Llama 3.3)** API to generate production-ready architecture patterns from natural language prompts.
-*   **Pattern Recognition**: Automatically suggests optimal placement for Load Balancers, CDNs, and Caches based on the user's performance requirements.
+### 🧠 1. Proactive AI-Driven Design Synthesis
+*   **LLM Integration**: Leverages the **Groq (Llama 3.3)** API to generate production-ready architecture patterns directly from natural language prompts.
+*   **Big Left-Aligned Input**: Prompt input is integrated directly on the left of the toolbar for direct system synthesis.
+*   **Design Pattern Auditor**: Dynamically detects structural architectural patterns from your visual graphs, explaining the benefits and trade-offs of patterns like **Cache-Aside**, **Queue-Based Load Leveling**, **Edge-Accelerated Ingress**, and **Horizontal Compute Scaling**.
 
-### ⚡ 2. High-Performance Simulation Engine
-*   **Concurrency with Goroutines**: Built in **Go**, the backend engine handles complex graph traversals and traffic distribution using lightweight goroutines.
-*   **WebSocket Telemetry**: Real-time bidirectional communication provides sub-100ms updates on node health, RPS, and latency metrics.
+### ⚡ 2. High-Performance Go Simulation Engine
+*   **Concurrency via Goroutines**: Built in **Go**, the backend models synthetic traffic as a series of probabilistic events across graph nodes, executing traversals and concurrency bottlenecks using lightweight goroutines.
+*   **Real-Time WebSocket Telemetry**: streams sub-100ms updates regarding component health, RPS, and individual traversal latencies.
 
-### 📊 3. Observability & Diagnostics
-*   **Real-time Dashboards**: Integrated **Recharts** visualization for monitoring throughput and latency trends.
-*   **Dynamic Bottleneck Detection**: Visual indicators (red-pulse alerts) identify overloaded nodes based on configurable capacity thresholds.
-*   **Post-Mortem Reporting**: Generates exportable JSON diagnostic reports including Health Scores, Peak Load analysis, and Failure Root Causes.
+### 🛡️ 3. Backend Connection Resilience
+*   **Exponential Backoff Health Check**: Automatically pings the `/health` endpoint upon starting a simulation to handle cold starts (especially useful for Render free-tier deployments) with visual *Connecting...* indicators.
+*   **WebSocket Auto-Retry**: Automatically attempts reconnection up to 3 times on connection dropped events.
+*   **Defensive UI State Machine**: Provides explicit, user-visible badge feedback for all connectivity phases (`disconnected` → `connecting` → `connected` → `error`).
 
----
-
-## 🛠️ How It Works & What It Does
-
-### 1. The Simulation Lifecycle
-The platform operates on a **Decoupled Event-Driven Architecture**:
-1.  **Graph Mapping**: The UI serializes your visual architecture into a JSON-based Directed Acyclic Graph (DAG).
-2.  **Traffic Injection**: When you hit "Simulate," the **Go backend** initializes a traffic generator. This generator models requests as concurrent packets traversing the graph.
-3.  **Probabilistic modeling**: Each node (API Server, DB, etc.) has an internal state machine. If the incoming traffic exceeds the node's **Capacity**, the backend introduces **Latency Penalties** and marks the node as `overloaded`.
-4.  **Real-Time Feedback Loop**: Metrics are aggregated on the backend every 100ms and streamed via **WebSockets** to the React frontend, updating charts and node statuses instantly.
-
-### 2. AI Architecture Synthesis 
-Instead of starting from a blank canvas, you can use the **Grok AI Architect**:
-- **Prompt**: *"Design a global video streaming service with CDN caching and a redundant database."*
-- **Synthesis**: The LLM parses your performance and availability requirements.
-- **Auto-Provisioning**: The system automatically provisions the nodes, connects them with optimal paths, and sets realistic baseline capacities for each component.
+### 📊 4. Advanced "Architect's Verdict"
+*   **Letter-Grading (A to F)**: Automatically scores your design based on synthetic load handling and latency limits.
+*   **Live Diagnostics**: Explains exact root causes for failures (e.g. *Database Connection Starvation, Compute Thread Saturation, Ingestion Buffer Overflow*).
+*   **Actionable Remediation Prescription**: Suggests immediate, concrete engineering next steps (e.g., placing Redis caches or adding Load Balancers).
+*   **Dead Component Detection**: Alerts the user of placed canvas nodes that have no active network edges connected.
 
 ---
 
 ## 🛠️ Technical Stack
 
-| Category | Technology |
-| :--- | :--- |
-| **Frontend** | React 19 (Hooks, Context), TypeScript, Zustand (State Mgmt) |
-| **Visuals** | React Flow (Graph UI), Tailwind CSS 4, Lucide |
-| **Backend** | Go (Gin Framework), WebSockets |
-| **AI/LLM** | Groq API (Llama 3.3), Prompt Engineering |
-| **Infrastructure** | Docker, Docker-Compose |
+| Category | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, TypeScript, Zustand | Global state & sub-100ms telemetry aggregation |
+| **Visuals** | React Flow, Vanilla CSS | Beautiful custom glassmorphism, responsive components, and node layouts |
+| **Backend** | Go (Gin Framework), WebSockets | Probabilistic traffic modeling and high-efficiency event processing |
+| **AI Engine** | Groq API (Llama 3.3) | Prompt parsing, graph generation, and parameter optimization |
+| **Infrastructure** | Docker, Docker-Compose | Containerized deployment configurations |
 
 ---
 
@@ -71,55 +62,66 @@ Instead of starting from a blank canvas, you can use the **Grok AI Architect**:
 │   └── main.go         # Entry point & Router configuration
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ # Atomic UI components (Header, Sidebar, Metrics)
-│   │   ├── nodes/      # Custom React Flow node implementations
-│   │   ├── store/      # Zustand global state & telemetry aggregation
-│   │   └── App.tsx     # Main 3-zone layout orchestration
-└── docker-compose.yml  # Orchestration for full-stack local deployment
+│   │   ├── components/ # Custom visual components (Header, Metrics, Verdict Panels)
+│   │   ├── nodes/      # React Flow custom node renders
+│   │   ├── store/      # Zustand state, health polling, and retry logic
+│   │   └── App.tsx     # Main dashboard orchestration layout
+│   ├── index.html      # Main HTML entry with custom title settings
+│   └── .env            # Environment configurations & Vercel notes
+└── docker-compose.yml  # Local multi-container development configuration
 ```
 
 ---
 
-## 🏗️ Technical Architecture & Workflow
+## 🏗️ Getting Started (Local Development)
 
-1.  **Orchestration**: The UI (React) captures user intent and sends it to the AI Handler (Go).
-2.  **Simulation**: The Simulation Engine (Go) models traffic as a series of probabilistic events across the graph nodes.
-3.  **Visualization**: React Flow renders the graph while Zustand manages the global telemetry state for millisecond-accurate chart updates.
+Both servers must be running locally to fully experience the real-time simulation and AI generation features.
 
----
-
-## 🏁 Installation & Deployment
-
-### Backend (Go)
+### Step 1: Run the Backend (Go)
 ```bash
 cd backend
 go mod download
 go run main.go
 ```
+*The server will start listening on port **`:8080`***.
 
-### Frontend (React)
+### Step 2: Run the Frontend (React)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*The local development server will start, typically on **`http://localhost:5174`** or **`http://localhost:5173`***.
 
-### Production Deployment
-This project is configured for split deployment:
-- **Backend**: Deployed on **Render** (via `render.yaml`) to support persistent WebSockets.
-- **Frontend**: Deployed on **Vercel** ([Live Link](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)) (Root directory: `frontend`).
-
-For detailed instructions, see [deployment_guide.md](./deployment_guide.md).
-
+### Environment Variable Setup
+Ensure you configure your `frontend/.env` file:
+```env
+# For local development pointing to local Go server
+VITE_API_URL=http://localhost:8080
+```
 
 ---
 
-## 👨‍💻 Engineering Impact (Recruiter Focus)
-*   **Solved Complex State Management**: Managed real-time data synchronization between high-frequency WebSocket streams and a dynamic graph UI.
-*   **Optimized Performance**: Implemented efficient backend logic in Go to ensure low-latency simulation even with large architectural graphs.
-*   **UX/UI for Complexity**: Designed a 3-zone diagnostic dashboard to present high-density data without overwhelming the user.
+## 🚀 Production Deployment
+
+This project utilizes a dual-provider split deployment strategy:
+
+1.   **Frontend**: Deployed on **Vercel** ([Vercel Production Link](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)).
+     *   *Environment Variable*: Set `VITE_API_URL` to your backend URL in the Vercel project dashboard.
+     *   *Deployment Protection*: Turn off "Standard Protection" under Project Settings → Deployment Protection to allow public access.
+2.   **Backend**: Deployed on **Render** (as a Docker container web service).
+     *   *Dockerfile*: Auto-configured with `golang:1.25-alpine` to build the compiled Go execution binary.
+     *   *Environment Variables*: Add `PORT=8080`, `XAI_ENDPOINT`, and `GROK_API_KEY` (secure as a secret).
+
+---
+
+## 👨‍💻 Key Engineering Accomplishments
+
+*   **Real-Time Aggregation at Scale**: Designed a Zustand-based state store that processes high-frequency (100ms interval) WebSocket telemetry without causing UI thread lockups.
+*   **Stateful Connection Resilience**: Built a reliable connection lifecycle that shields users from Render free-tier cold starts via exponential backoff health checks.
+*   **Dynamic Graph Audit Engine**: Built an in-memory graph analyzer that evaluates active topological patterns, orphan nodes, and failures to generate diagnostic verdicts.
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
