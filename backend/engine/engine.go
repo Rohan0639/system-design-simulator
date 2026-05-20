@@ -143,8 +143,18 @@ func (e *SimulationEngine) handleEvent(event *Event, currentTime int64) {
 	if node == nil {
 		return
 	}
-	if event.Type == RequestArrive {
+	switch event.Type {
+	case RequestArrive:
 		e.processArrival(node, event, currentTime)
+	case RequestDone:
+		m := e.metrics[node.ID]
+		if m != nil {
+			if node.Type == models.Database || node.Type == models.Storage {
+				atomic.AddInt64(&m.connections, -1)
+			} else if node.Type == models.Queue {
+				atomic.AddInt64(&m.queueDepth, -1)
+			}
+		}
 	}
 }
 
@@ -177,10 +187,9 @@ func (e *SimulationEngine) processArrival(node *models.Node, event *Event, curre
 		if maxConn == 0 {
 			maxConn = node.Capacity // fallback
 		}
-		currentConn := atomic.AddInt64(&m.connections, 1)
-		defer atomic.AddInt64(&m.connections, -1)
-
-		if currentConn > int64(maxConn) {
+		
+		currentConn := atomic.LoadInt64(&m.connections)
+		if currentConn >= int64(maxConn) {
 			// Hard reject — connection pool exhausted
 			atomic.AddInt64(&m.droppedReqs, 1)
 			m.statusMu.Lock()
@@ -189,6 +198,18 @@ func (e *SimulationEngine) processArrival(node *models.Node, event *Event, curre
 			atomic.StoreInt64(&m.avgLatency, int64(node.Latency*4))
 			return
 		}
+		
+		// Occupy a connection
+		atomic.AddInt64(&m.connections, 1)
+		
+		// Schedule virtual connection release when request processing finishes
+		e.eventMu.Lock()
+		heap.Push(&e.Events, &Event{
+			Time:   currentTime + int64(node.Latency*1000),
+			Type:   RequestDone,
+			NodeID: node.ID,
+		})
+		e.eventMu.Unlock()
 
 	case models.Queue:
 		// Queue: accumulate backlog. Drop when full.
@@ -196,15 +217,28 @@ func (e *SimulationEngine) processArrival(node *models.Node, event *Event, curre
 		if maxDepth == 0 {
 			maxDepth = node.Capacity
 		}
-		depth := atomic.AddInt64(&m.queueDepth, 1)
-		if depth > int64(maxDepth) {
+		
+		depth := atomic.LoadInt64(&m.queueDepth)
+		if depth >= int64(maxDepth) {
 			atomic.AddInt64(&m.droppedReqs, 1)
-			atomic.AddInt64(&m.queueDepth, -1)
 			m.statusMu.Lock()
 			m.status = "overloaded"
 			m.statusMu.Unlock()
 			return
 		}
+		
+		// Occupy a slot in queue
+		atomic.AddInt64(&m.queueDepth, 1)
+		
+		// Schedule queue depth drain/release in future
+		e.eventMu.Lock()
+		heap.Push(&e.Events, &Event{
+			Time:   currentTime + int64(node.Latency*1000),
+			Type:   RequestDone,
+			NodeID: node.ID,
+		})
+		e.eventMu.Unlock()
+		
 		// Queue drains slowly — simulate processing delay
 		atomic.StoreInt64(&m.avgLatency, int64(node.Latency)+(depth*2))
 
