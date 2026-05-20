@@ -11,7 +11,9 @@ import { ComponentLibrary } from './components/ComponentLibrary';
 import { 
   BarChart3,
   Info,
-  Activity
+  Activity,
+  Loader2,
+  WifiOff,
 } from 'lucide-react';
 
 function App() {
@@ -26,7 +28,9 @@ function App() {
     metricsHistory,
     simulationReport,
     clearReport,
-    addNode
+    addNode,
+    backendStatus,
+    backendMessage,
   } = useStore();
 
   const onDragOver = (event: React.DragEvent) => {
@@ -61,7 +65,7 @@ function App() {
         <ComponentLibrary />
 
         {/* Main Canvas Area */}
-        <main className="flex-1 relative bg-[#0a0a0c]">
+        <main className="flex-1 relative bg-background">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -77,22 +81,45 @@ function App() {
             defaultEdgeOptions={{
               type: 'smoothstep',
               animated: isSimulating,
-              style: { stroke: isSimulating ? '#6366f1' : '#333', strokeWidth: 2 },
+              style: { stroke: isSimulating ? '#6366f1' : '#3f3f46', strokeWidth: 2 },
             }}
           >
-            <Background color="#1a1a1e" gap={20} size={1} />
+            <Background color="#27272a" gap={20} size={1} />
             <Controls className="custom-controls" />
             
             <Panel position="top-right" className="pointer-events-none">
               <div className="flex flex-col items-end gap-2 p-4">
-                <div className={`px-4 py-2 rounded-full border flex items-center gap-2 backdrop-blur-md shadow-2xl transition-all ${
-                  isSimulating ? 'bg-success/10 border-success/30 text-success' : 'bg-card/50 border-border text-foreground/40'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-success animate-pulse' : 'bg-foreground/20'}`} />
-                  <span className="text-[11px] font-black uppercase tracking-widest">
-                    {isSimulating ? 'Simulation Active' : 'System Idle'}
-                  </span>
-                </div>
+                {/* Connecting state — amber pulse with spinner */}
+                {backendStatus === 'connecting' && (
+                  <div className="px-4 py-2 rounded-full border flex items-center gap-2 backdrop-blur-md shadow-2xl bg-amber-500/10 border-amber-500/30 text-amber-400 transition-all">
+                    <Loader2 size={14} className="animate-spin" />
+                    <span className="text-[11px] font-black uppercase tracking-widest">
+                      {backendMessage || 'Connecting...'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Error state — red with WifiOff icon */}
+                {backendStatus === 'error' && (
+                  <div className="px-4 py-2 rounded-full border flex items-center gap-2 backdrop-blur-md shadow-2xl bg-red-500/10 border-red-500/30 text-red-400 transition-all">
+                    <WifiOff size={14} />
+                    <span className="text-[11px] font-black uppercase tracking-widest">
+                      {backendMessage || 'Connection Failed'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Normal idle / active state */}
+                {backendStatus !== 'connecting' && backendStatus !== 'error' && (
+                  <div className={`px-4 py-2 rounded-full border flex items-center gap-2 backdrop-blur-md shadow-2xl transition-all ${
+                    isSimulating ? 'bg-success/10 border-success/30 text-success' : 'bg-card/50 border-border text-foreground/40'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-success animate-pulse' : 'bg-foreground/20'}`} />
+                    <span className="text-[11px] font-black uppercase tracking-widest">
+                      {isSimulating ? 'Simulation Active' : 'System Idle'}
+                    </span>
+                  </div>
+                )}
               </div>
             </Panel>
           </ReactFlow>

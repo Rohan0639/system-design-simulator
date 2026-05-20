@@ -20,22 +20,23 @@ export const MetricsDashboard = ({ data }: MetricsPanelProps) => {
         <div className="h-[150px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f1f23" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="time" hide />
               <YAxis 
-                stroke="#4b5563" 
+                stroke="#64748b" 
                 fontSize={10} 
                 tickFormatter={(val) => `${val/1000}k`} 
               />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#111114', border: '1px solid #1f1f23', borderRadius: '8px' }}
-                itemStyle={{ color: '#6366f1' }}
+                contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)' }}
+                itemStyle={{ color: 'var(--color-primary)' }}
+                labelStyle={{ color: 'var(--color-foreground)' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="totalRps" 
-                stroke="#6366f1" 
-                strokeWidth={2} 
+                stroke="var(--color-primary)" 
+                strokeWidth={2.5} 
                 dot={false} 
                 isAnimationActive={false}
               />
@@ -49,18 +50,19 @@ export const MetricsDashboard = ({ data }: MetricsPanelProps) => {
         <div className="h-[150px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f1f23" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="time" hide />
-              <YAxis stroke="#4b5563" fontSize={10} />
+              <YAxis stroke="#64748b" fontSize={10} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#111114', border: '1px solid #1f1f23', borderRadius: '8px' }}
-                itemStyle={{ color: '#c084fc' }}
+                contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)' }}
+                itemStyle={{ color: 'var(--color-accent)' }}
+                labelStyle={{ color: 'var(--color-foreground)' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="avgLatency" 
-                stroke="#c084fc" 
-                strokeWidth={2} 
+                stroke="var(--color-accent)" 
+                strokeWidth={2.5} 
                 dot={false} 
                 isAnimationActive={false}
               />

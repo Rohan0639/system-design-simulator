@@ -17,11 +17,14 @@ export const Header = () => {
     rps, 
     setRPS, 
     generateAIDesign,
-    simulationReport
+    simulationReport,
+    backendStatus,
   } = useStore();
   
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const isConnecting = backendStatus === 'connecting';
 
   const handleAIDesign = async () => {
     if (!prompt.trim()) return;
@@ -114,13 +117,18 @@ export const Header = () => {
         
         <button
           onClick={isSimulating ? stopSimulation : startSimulation}
-          className={`px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-3 transition-all shadow-xl shadow-black/20 hover:scale-[1.02] active:scale-[0.98] ${
-            isSimulating 
-              ? 'bg-error text-white' 
-              : 'bg-success text-white shadow-success/20'
+          disabled={isConnecting}
+          className={`px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-3 transition-all shadow-xl shadow-black/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+            isConnecting
+              ? 'bg-amber-500 text-white shadow-amber-500/20'
+              : isSimulating 
+                ? 'bg-error text-white' 
+                : 'bg-success text-white shadow-success/20'
           }`}
         >
-          {isSimulating ? (
+          {isConnecting ? (
+            <><Loader2 size={18} className="animate-spin" /> CONNECTING...</>
+          ) : isSimulating ? (
             <><Square size={18} fill="currentColor" /> STOP</>
           ) : (
             <><Play size={18} fill="currentColor" /> SIMULATE</>
@@ -130,3 +138,4 @@ export const Header = () => {
     </header>
   );
 };
+

@@ -53,13 +53,15 @@ type SimulationFrame struct {
 }
 
 type NodeStatus struct {
-	ID           string `json:"id"`
-	Status       string `json:"status"`
-	CurrentRPS   int    `json:"current_rps"`
-	AvgLatency   int    `json:"avg_latency"`
-	QueueDepth   int    `json:"queue_depth,omitempty"`   // Queue nodes
-	CacheHits    int    `json:"cache_hits,omitempty"`    // Cache/CDN nodes
-	CacheMisses  int    `json:"cache_misses,omitempty"`  // Cache/CDN nodes
-	Connections  int    `json:"connections,omitempty"`   // Database nodes
-	DroppedReqs  int    `json:"dropped_reqs,omitempty"`  // Overloaded nodes
+	ID          string `json:"id"`
+	Status      string `json:"status"`
+	CurrentRPS  int    `json:"current_rps"`
+	PeakRPS     int    `json:"peak_rps"`      // FIX 3: never resets, tracks highest RPS seen
+	IsEntryNode bool   `json:"is_entry_node"` // FIX 3: frontend uses this for accurate peak RPS
+	AvgLatency  int    `json:"avg_latency"`
+	QueueDepth  int    `json:"queue_depth,omitempty"`  // Queue nodes
+	CacheHits   int    `json:"cache_hits,omitempty"`   // Cache/CDN nodes
+	CacheMisses int    `json:"cache_misses,omitempty"` // Cache/CDN nodes
+	Connections int    `json:"connections,omitempty"`  // Database nodes
+	DroppedReqs int    `json:"dropped_reqs,omitempty"` // Overloaded nodes
 }

@@ -145,17 +145,17 @@ export const SimulationSummaryBlock = ({ report, onClear }: SummaryProps) => {
                 {expandedId === node.id && (
                   <div className="px-3 pb-3 pt-1 space-y-3 animate-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded-lg bg-black/20">
-                        <p className="text-[9px] uppercase font-bold opacity-40">Peak Load</p>
+                      <div className="p-2 rounded-lg bg-foreground/5 border border-foreground/5">
+                        <p className="text-[9px] uppercase font-bold opacity-50">Peak Load</p>
                         <p className="text-xs font-black text-error">{node.rps.toLocaleString()} RPS</p>
                       </div>
-                      <div className="p-2 rounded-lg bg-black/20">
-                        <p className="text-[9px] uppercase font-bold opacity-40">Limit</p>
+                      <div className="p-2 rounded-lg bg-foreground/5 border border-foreground/5">
+                        <p className="text-[9px] uppercase font-bold opacity-50">Limit</p>
                         <p className="text-xs font-black">{node.capacity.toLocaleString()} RPS</p>
                       </div>
                     </div>
-                    <div className="p-2 rounded-lg bg-black/20">
-                      <p className="text-[9px] uppercase font-bold opacity-40 mb-1">Root Cause</p>
+                    <div className="p-2 rounded-lg bg-foreground/5 border border-foreground/5">
+                      <p className="text-[9px] uppercase font-bold opacity-50 mb-1">Root Cause</p>
                       <p className="text-[11px] leading-relaxed opacity-80">
                         The {node.type.replace('_', ' ')} is physically unable to process the incoming request volume. 
                         Load is <span className="text-error font-bold">{Math.round((node.rps / node.capacity) * 100)}%</span> of total capacity.

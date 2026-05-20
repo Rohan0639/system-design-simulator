@@ -46,17 +46,16 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
-// FIX 1: nodeMetrics holds all counters as atomics to prevent race conditions.
-// int64 is required for atomic operations.
 type nodeMetrics struct {
 	currentRPS  int64
+	peakRPS     int64 // FIX 3: track peak separately, never reset
 	avgLatency  int64
 	queueDepth  int64
 	cacheHits   int64
 	cacheMisses int64
 	connections int64
 	droppedReqs int64
-	statusMu    sync.Mutex // mutex only for string status field
+	statusMu    sync.Mutex
 	status      string
 }
 
@@ -64,21 +63,30 @@ type SimulationEngine struct {
 	Graph   models.Graph
 	Config  models.SimulationConfig
 	Events  PriorityQueue
-	eventMu sync.Mutex // FIX 1: mutex protecting the shared priority queue
+	eventMu sync.Mutex
 
-	metrics map[string]*nodeMetrics
+	metrics     map[string]*nodeMetrics
+	entryNodeID string // FIX 3: track entry point for accurate peak RPS
 }
 
 func NewSimulationEngine(graph models.Graph, config models.SimulationConfig) *SimulationEngine {
 	metrics := make(map[string]*nodeMetrics)
+	entryNodeID := ""
+
 	for _, node := range graph.Nodes {
 		metrics[node.ID] = &nodeMetrics{status: "ok"}
+		// FIX 3: load_balancer is the real entry point for measuring throughput
+		if node.Type == models.LoadBalancer {
+			entryNodeID = node.ID
+		}
 	}
+
 	return &SimulationEngine{
-		Graph:   graph,
-		Config:  config,
-		Events:  make(PriorityQueue, 0),
-		metrics: metrics,
+		Graph:       graph,
+		Config:      config,
+		Events:      make(PriorityQueue, 0),
+		metrics:     metrics,
+		entryNodeID: entryNodeID,
 	}
 }
 
@@ -88,6 +96,7 @@ func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
 	heap.Init(&e.Events)
 
 	// Generate initial traffic from client nodes
+	// FIX 1: Also count client events in metrics so client shows correct RPS
 	for _, node := range e.Graph.Nodes {
 		if node.Type == models.Client {
 			interval := int64(1000000 / e.Config.RPS)
@@ -109,10 +118,12 @@ func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
 		event := heap.Pop(&e.Events).(*Event)
 		currentTime = event.Time
 
-		// Reset RPS counters every simulated second
+		// FIX 2: Smooth RPS reset — keep 20% of previous value instead of hard zero
+		// This eliminates the spike-to-zero pattern every simulated second
 		if currentTime-lastRPSReset >= 1000000 {
 			for _, m := range e.metrics {
-				atomic.StoreInt64(&m.currentRPS, 0)
+				current := atomic.LoadInt64(&m.currentRPS)
+				atomic.StoreInt64(&m.currentRPS, current/5)
 			}
 			lastRPSReset = currentTime
 		}
@@ -143,54 +154,59 @@ func (e *SimulationEngine) handleEvent(event *Event, currentTime int64) {
 	if node == nil {
 		return
 	}
-	switch event.Type {
-	case RequestArrive:
+	if event.Type == RequestArrive {
 		e.processArrival(node, event, currentTime)
-	case RequestDone:
-		m := e.metrics[node.ID]
-		if m != nil {
-			if node.Type == models.Database || node.Type == models.Storage {
-				atomic.AddInt64(&m.connections, -1)
-			} else if node.Type == models.Queue {
-				atomic.AddInt64(&m.queueDepth, -1)
-			}
-		}
 	}
 }
 
-// FIX 2: Each node type has its own processing logic
 func (e *SimulationEngine) processArrival(node *models.Node, event *Event, currentTime int64) {
 	m := e.metrics[node.ID]
+
+	// FIX 1: Increment RPS for ALL node types including Client and Queue
+	// before type-specific logic so no node shows 0 incorrectly
+	rps := atomic.AddInt64(&m.currentRPS, 1)
+
+	// FIX 3: Update peak RPS atomically — never reset this
+	for {
+		current := atomic.LoadInt64(&m.peakRPS)
+		if rps <= current {
+			break
+		}
+		if atomic.CompareAndSwapInt64(&m.peakRPS, current, rps) {
+			break
+		}
+	}
 
 	switch node.Type {
 
 	case models.Cache, models.CDN:
-		// Cache: check hit ratio. Hit = serve fast. Miss = pass to next node with penalty.
 		hitRatio := node.HitRatio
 		if hitRatio == 0 {
-			hitRatio = 0.8 // default 80% cache hit rate
+			hitRatio = 0.8
 		}
 		if rand.Float64() < hitRatio {
 			atomic.AddInt64(&m.cacheHits, 1)
 			atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
-		} else {
-			atomic.AddInt64(&m.cacheMisses, 1)
-			// Cache miss: higher latency, still forward to next node
-			atomic.StoreInt64(&m.avgLatency, int64(node.Latency*3))
-			e.forwardToNextNode(node, event, currentTime, node.Latency*3)
+			// Cache hit — serve locally, do NOT forward
+			e.updateStatus(m, rps, node)
 			return
 		}
+		// Cache miss — penalize latency and forward to next node
+		atomic.AddInt64(&m.cacheMisses, 1)
+		atomic.StoreInt64(&m.avgLatency, int64(node.Latency*3))
+		e.updateStatus(m, rps, node)
+		e.forwardToNextNode(node, event, currentTime, node.Latency*3)
+		return
 
 	case models.Database, models.Storage:
-		// Database: connection pool limit. Exceeding = hard rejection, not just slowdown.
 		maxConn := node.MaxConnections
 		if maxConn == 0 {
-			maxConn = node.Capacity // fallback
+			maxConn = node.Capacity
 		}
-		
-		currentConn := atomic.LoadInt64(&m.connections)
-		if currentConn >= int64(maxConn) {
-			// Hard reject — connection pool exhausted
+		currentConn := atomic.AddInt64(&m.connections, 1)
+		defer atomic.AddInt64(&m.connections, -1)
+
+		if currentConn > int64(maxConn) {
 			atomic.AddInt64(&m.droppedReqs, 1)
 			m.statusMu.Lock()
 			m.status = "overloaded"
@@ -198,64 +214,39 @@ func (e *SimulationEngine) processArrival(node *models.Node, event *Event, curre
 			atomic.StoreInt64(&m.avgLatency, int64(node.Latency*4))
 			return
 		}
-		
-		// Occupy a connection
-		atomic.AddInt64(&m.connections, 1)
-		
-		// Schedule virtual connection release when request processing finishes
-		e.eventMu.Lock()
-		heap.Push(&e.Events, &Event{
-			Time:   currentTime + int64(node.Latency*1000),
-			Type:   RequestDone,
-			NodeID: node.ID,
-		})
-		e.eventMu.Unlock()
 
 	case models.Queue:
-		// Queue: accumulate backlog. Drop when full.
 		maxDepth := node.MaxQueueDepth
 		if maxDepth == 0 {
 			maxDepth = node.Capacity
 		}
-		
-		depth := atomic.LoadInt64(&m.queueDepth)
-		if depth >= int64(maxDepth) {
+		depth := atomic.AddInt64(&m.queueDepth, 1)
+		if depth > int64(maxDepth) {
 			atomic.AddInt64(&m.droppedReqs, 1)
+			atomic.AddInt64(&m.queueDepth, -1)
 			m.statusMu.Lock()
 			m.status = "overloaded"
 			m.statusMu.Unlock()
 			return
 		}
-		
-		// Occupy a slot in queue
-		atomic.AddInt64(&m.queueDepth, 1)
-		
-		// Schedule queue depth drain/release in future
-		e.eventMu.Lock()
-		heap.Push(&e.Events, &Event{
-			Time:   currentTime + int64(node.Latency*1000),
-			Type:   RequestDone,
-			NodeID: node.ID,
-		})
-		e.eventMu.Unlock()
-		
-		// Queue drains slowly — simulate processing delay
 		atomic.StoreInt64(&m.avgLatency, int64(node.Latency)+(depth*2))
 
 	case models.LoadBalancer:
-		// Load balancer: distribute evenly, very low latency overhead
 		atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
 
 	default:
-		// API Server, Client: standard RPS-based capacity check
+		// Client, APIServer
 		atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
 	}
 
-	// FIX 1: Atomic increment — safe across goroutines
-	rps := atomic.AddInt64(&m.currentRPS, 1)
+	e.updateStatus(m, rps, node)
+	e.forwardToNextNode(node, event, currentTime, int(atomic.LoadInt64(&m.avgLatency)))
+}
 
-	// Update status based on load
+// updateStatus sets ok/warning/overloaded based on current RPS vs capacity
+func (e *SimulationEngine) updateStatus(m *nodeMetrics, rps int64, node *models.Node) {
 	m.statusMu.Lock()
+	defer m.statusMu.Unlock()
 	if rps > int64(node.Capacity) {
 		m.status = "overloaded"
 		atomic.StoreInt64(&m.avgLatency, int64(node.Latency*2))
@@ -265,9 +256,6 @@ func (e *SimulationEngine) processArrival(node *models.Node, event *Event, curre
 	} else {
 		m.status = "ok"
 	}
-	m.statusMu.Unlock()
-
-	e.forwardToNextNode(node, event, currentTime, int(atomic.LoadInt64(&m.avgLatency)))
 }
 
 func (e *SimulationEngine) forwardToNextNode(node *models.Node, event *Event, currentTime int64, latencyMs int) {
@@ -276,7 +264,6 @@ func (e *SimulationEngine) forwardToNextNode(node *models.Node, event *Event, cu
 		return
 	}
 
-	// Load balancer distributes round-robin style; others pick random
 	var targetEdge models.Edge
 	if node.Type == models.LoadBalancer {
 		rps := atomic.LoadInt64(&e.metrics[node.ID].currentRPS)
@@ -285,7 +272,6 @@ func (e *SimulationEngine) forwardToNextNode(node *models.Node, event *Event, cu
 		targetEdge = edges[rand.Intn(len(edges))]
 	}
 
-	// FIX 1: Lock the priority queue before pushing new event
 	e.eventMu.Lock()
 	heap.Push(&e.Events, &Event{
 		Time:   currentTime + int64(latencyMs*1000),
@@ -321,10 +307,15 @@ func (e *SimulationEngine) getCurrentStatus() []models.NodeStatus {
 		status := m.status
 		m.statusMu.Unlock()
 
+		// FIX 3: Tag which node is the entry point for frontend peak RPS calculation
+		isEntryNode := id == e.entryNodeID
+
 		statuses = append(statuses, models.NodeStatus{
 			ID:          id,
 			Status:      status,
 			CurrentRPS:  int(atomic.LoadInt64(&m.currentRPS)),
+			PeakRPS:     int(atomic.LoadInt64(&m.peakRPS)),
+			IsEntryNode: isEntryNode,
 			AvgLatency:  int(atomic.LoadInt64(&m.avgLatency)),
 			QueueDepth:  int(atomic.LoadInt64(&m.queueDepth)),
 			CacheHits:   int(atomic.LoadInt64(&m.cacheHits)),

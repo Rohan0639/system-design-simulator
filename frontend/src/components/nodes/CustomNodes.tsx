@@ -13,20 +13,20 @@ import { clsx } from 'clsx';
 
 const NodeWrapper = ({ label, icon: Icon, type, selected, status, currentRps }: any) => {
   const baseColors: Record<string, string> = {
-    client: 'border-blue-500 bg-blue-500/10 text-blue-400',
-    load_balancer: 'border-indigo-500 bg-indigo-500/10 text-indigo-400',
-    api_server: 'border-purple-500 bg-purple-500/10 text-purple-400',
-    database: 'border-emerald-500 bg-emerald-500/10 text-emerald-400',
-    cache: 'border-amber-500 bg-amber-500/10 text-amber-400',
-    cdn: 'border-cyan-500 bg-cyan-500/10 text-cyan-400',
-    queue: 'border-orange-500 bg-orange-500/10 text-orange-400',
-    storage: 'border-slate-500 bg-slate-500/10 text-slate-400',
+    client: 'border-blue-500/40 bg-blue-500/10 text-blue-400',
+    load_balancer: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-400',
+    api_server: 'border-purple-500/40 bg-purple-500/10 text-purple-400',
+    database: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
+    cache: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+    cdn: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400',
+    queue: 'border-orange-500/40 bg-orange-500/10 text-orange-400',
+    storage: 'border-slate-500/40 bg-slate-500/10 text-slate-400',
   };
 
   const statusColors: Record<string, string> = {
-    ok: 'border-success/50 shadow-success/10',
-    warning: 'border-warning/50 shadow-warning/20',
-    overloaded: 'border-error shadow-error/40 animate-pulse',
+    ok: 'border-success/40 bg-success/10 text-success',
+    warning: 'border-warning/40 bg-warning/10 text-warning',
+    overloaded: 'border-error bg-error/10 text-error animate-pulse',
   };
 
   return (
@@ -35,15 +35,15 @@ const NodeWrapper = ({ label, icon: Icon, type, selected, status, currentRps }: 
       selected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : '',
       status ? statusColors[status] : baseColors[type] || 'border-border'
     )}>
-      <div className={clsx('p-2 rounded-lg', baseColors[type])}>
+      <div className={clsx('p-2 rounded-lg border', baseColors[type])}>
         <Icon size={20} />
       </div>
       <div className="flex-1">
-        <p className="text-[10px] uppercase tracking-wider opacity-60 font-bold">{type.replace('_', ' ')}</p>
-        <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-[100px]">{label}</p>
+        <p className="text-[9px] uppercase tracking-widest text-foreground/45 font-bold">{type.replace('_', ' ')}</p>
+        <p className="text-sm font-bold text-foreground leading-tight truncate max-w-[100px]">{label}</p>
         {currentRps !== undefined && (
           <p className={clsx(
-            "text-[10px] font-mono mt-1",
+            "text-[10px] font-mono mt-1 font-bold",
             status === 'overloaded' ? 'text-error' : 'text-primary'
           )}>
             {currentRps.toLocaleString()} RPS
