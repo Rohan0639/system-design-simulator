@@ -48,7 +48,7 @@ export const Header = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `syssim_report_${Date.now()}.json`;
+    link.download = `system_design_report_${Date.now()}.json`;
     link.click();
   };
 
@@ -62,8 +62,7 @@ export const Header = () => {
             <Activity className="text-white" size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight leading-none">SysSim Pro</h1>
-            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1">Design & Simulate</p>
+            <h1 className="text-lg font-black tracking-tight leading-none uppercase">System Design Simulator</h1>
           </div>
         </div>
 
