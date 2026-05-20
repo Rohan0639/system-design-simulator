@@ -53,20 +53,21 @@ export const Header = () => {
   };
 
   return (
-    <header className="h-20 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between px-8 z-50">
-      {/* Brand */}
-      <div className="flex items-center gap-4 min-w-[200px]">
-        <div className="p-2.5 bg-primary rounded-xl shadow-lg shadow-primary/30">
-          <Activity className="text-white" size={24} />
+    <header className="h-20 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between px-8 z-50 gap-6">
+      {/* Left Side: Brand + Big Grok Input */}
+      <div className="flex items-center gap-8 flex-1 max-w-3xl">
+        {/* Brand */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="p-2.5 bg-primary rounded-xl shadow-lg shadow-primary/30">
+            <Activity className="text-white" size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl font-black tracking-tight leading-none">SysSim Pro</h1>
+            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1">Design & Simulate</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-black tracking-tight leading-none">SysSim Pro</h1>
-          <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest mt-1">Design & Simulate</p>
-        </div>
-      </div>
 
-      {/* AI Search & RPS (Center Hub) */}
-      <div className="flex-1 max-w-3xl px-12 flex items-center gap-8">
+        {/* Big Grok AI Input */}
         <div className="relative flex-1 group">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors">
             <Zap size={18} />
@@ -77,7 +78,7 @@ export const Header = () => {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAIDesign()}
             placeholder="Ask Grok to architect a system..." 
-            className="w-full bg-background/50 border border-border rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:opacity-30"
+            className="w-full bg-background/50 border border-border rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:opacity-30 hover:border-border/80 text-foreground font-medium"
           />
           {isGenerating && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary animate-spin">
@@ -85,26 +86,27 @@ export const Header = () => {
             </div>
           )}
         </div>
-
-        <div className="w-64 flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Input Load</span>
-            <span className="text-xs font-black text-primary">{rps.toLocaleString()} RPS</span>
-          </div>
-          <input 
-            type="range" 
-            min="100" 
-            max="20000" 
-            step="100"
-            value={rps}
-            onChange={(e) => setRPS(parseInt(e.target.value))}
-            className="w-full accent-primary bg-border rounded-full h-1.5 cursor-pointer"
-          />
-        </div>
       </div>
 
-      {/* Global Actions */}
-      <div className="flex items-center gap-4 min-w-[280px] justify-end">
+      {/* Center Group: Input Load Slider */}
+      <div className="w-72 flex flex-col gap-1.5 shrink-0 mx-4">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Input Load</span>
+          <span className="text-xs font-black text-primary">{rps.toLocaleString()} RPS</span>
+        </div>
+        <input 
+          type="range" 
+          min="100" 
+          max="20000" 
+          step="100"
+          value={rps}
+          onChange={(e) => setRPS(parseInt(e.target.value))}
+          className="w-full accent-primary bg-border rounded-full h-1.5 cursor-pointer"
+        />
+      </div>
+
+      {/* Right Group: Global Actions */}
+      <div className="flex items-center gap-4 shrink-0 justify-end min-w-[180px]">
         {simulationReport && (
           <button 
             onClick={handleDownload}
