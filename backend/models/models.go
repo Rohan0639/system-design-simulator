@@ -19,6 +19,16 @@ type Node struct {
 	Capacity int      `json:"capacity"` // Requests per second
 	Latency  int      `json:"latency"`  // ms
 	Status   string   `json:"status"`   // "ok", "warning", "overloaded"
+
+	// FIX 2: Node-type-specific behavior fields
+	// Cache: probability of serving from cache (0.0 to 1.0). Miss = fallback to DB.
+	HitRatio float64 `json:"hit_ratio,omitempty"` // Cache/CDN only
+
+	// Database: max concurrent connections before hard rejection
+	MaxConnections int `json:"max_connections,omitempty"` // Database/Storage only
+
+	// Queue: max backlog depth before dropping requests
+	MaxQueueDepth int `json:"max_queue_depth,omitempty"` // Queue only
 }
 
 type Edge struct {
@@ -43,8 +53,13 @@ type SimulationFrame struct {
 }
 
 type NodeStatus struct {
-	ID         string `json:"id"`
-	Status     string `json:"status"`
-	CurrentRPS int    `json:"current_rps"`
-	AvgLatency int    `json:"avg_latency"`
+	ID           string `json:"id"`
+	Status       string `json:"status"`
+	CurrentRPS   int    `json:"current_rps"`
+	AvgLatency   int    `json:"avg_latency"`
+	QueueDepth   int    `json:"queue_depth,omitempty"`   // Queue nodes
+	CacheHits    int    `json:"cache_hits,omitempty"`    // Cache/CDN nodes
+	CacheMisses  int    `json:"cache_misses,omitempty"`  // Cache/CDN nodes
+	Connections  int    `json:"connections,omitempty"`   // Database nodes
+	DroppedReqs  int    `json:"dropped_reqs,omitempty"`  // Overloaded nodes
 }

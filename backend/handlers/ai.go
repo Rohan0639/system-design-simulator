@@ -8,14 +8,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/Rohan0639/system-design-simulator/backend/models"
 )
 
 type xAIRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Temperature float64   `json:"temperature"`
+	Model          string    `json:"model"`
+	Messages       []Message `json:"messages"`
+	Temperature    float64   `json:"temperature"`
 	ResponseFormat struct {
 		Type string `json:"type"`
 	} `json:"response_format"`
@@ -56,18 +57,41 @@ func GenerateDesign(c *gin.Context) {
 
 	log.Printf("Calling Grok with prompt: %s", input.Prompt)
 
-	systemPrompt := `You are a System Design Architect. 
-Return ONLY a valid JSON object. Do not include any markdown formatting or talk.
+	// FIX 2: Updated system prompt instructs AI to set node-type-specific fields
+	systemPrompt := `You are a System Design Architect.
+Return ONLY a valid JSON object. No markdown, no explanation outside JSON.
+
 Allowed node types: client, load_balancer, api_server, database, cache, cdn, queue, storage.
+
 Placement Logic (Absolute Coordinates):
 - Clients: x=0, y=variable
 - Entrance (CDN/LB): x=300, y=variable
 - Processing (API): x=600, y=variable
 - Storage/State (DB/Cache/Queue): x=900, y=variable
 
+Node-type rules:
+- cache and cdn nodes: set hit_ratio between 0.7 and 0.95 (realistic cache hit rate)
+- database and storage nodes: set max_connections (typical: 100-500)
+- queue nodes: set max_queue_depth (typical: 1000-10000)
+- load_balancer nodes: set high capacity (10000+) and low latency (1-5ms)
+- database nodes: set lower capacity (100-500) and higher latency (10-50ms)
+- cache nodes: set very low latency (1-5ms) and high capacity (5000+)
+
 JSON Schema:
 {
-  "nodes": [{"id": "string", "type": "string", "label": "string", "capacity": number, "latency": number, "position": {"x": number, "y": number}}],
+  "nodes": [
+    {
+      "id": "string",
+      "type": "string",
+      "label": "string",
+      "capacity": number,
+      "latency": number,
+      "position": {"x": number, "y": number},
+      "hit_ratio": number,
+      "max_connections": number,
+      "max_queue_depth": number
+    }
+  ],
   "edges": [{"source": "string", "target": "string"}],
   "explanation": "string",
   "suggestions": ["string"]
@@ -120,10 +144,28 @@ JSON Schema:
 		return
 	}
 
-	// Validate integrity
 	if err := validateAIArchitecture(finalGraph); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "AI generated invalid architecture", "details": err.Error()})
 		return
+	}
+
+	// FIX 2: Apply sensible defaults for node-type-specific fields if AI didn't set them
+	for i := range finalGraph.Nodes {
+		n := &finalGraph.Nodes[i]
+		switch n.Type {
+		case "cache", "cdn":
+			if n.HitRatio == 0 {
+				n.HitRatio = 0.8
+			}
+		case "database", "storage":
+			if n.MaxConnections == 0 {
+				n.MaxConnections = 100
+			}
+		case "queue":
+			if n.MaxQueueDepth == 0 {
+				n.MaxQueueDepth = 5000
+			}
+		}
 	}
 
 	log.Printf("Generated graph with %d nodes and %d edges", len(finalGraph.Nodes), len(finalGraph.Edges))

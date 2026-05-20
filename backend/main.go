@@ -1,18 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
-
 	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
 	"github.com/Rohan0639/system-design-simulator/backend/engine"
 	"github.com/Rohan0639/system-design-simulator/backend/handlers"
 	"github.com/Rohan0639/system-design-simulator/backend/models"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 var upgrader = websocket.Upgrader{
@@ -25,7 +25,6 @@ func main() {
 	godotenv.Load()
 	r := gin.Default()
 
-	// CORS Middleware
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -61,10 +60,15 @@ func handleWebSocket(c *gin.Context) {
 	}
 	defer conn.Close()
 
+	// FIX: cancel context so goroutines stop cleanly when client disconnects
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error reading message: %v", err)
+			log.Printf("Client disconnected: %v", err)
+			cancel() // stop any running simulation
 			break
 		}
 
@@ -78,24 +82,44 @@ func handleWebSocket(c *gin.Context) {
 			continue
 		}
 
-		log.Printf("Starting simulation for %d nodes", len(req.Graph.Nodes))
+		if len(req.Graph.Nodes) == 0 {
+			log.Printf("Empty graph received, skipping simulation")
+			continue
+		}
 
-		// Initialize engine
+		log.Printf("Starting simulation: %d nodes, %d RPS, %ds duration",
+			len(req.Graph.Nodes), req.Config.RPS, req.Config.Duration)
+
+		// Cancel previous simulation if still running
+		cancel()
+		ctx, cancel = context.WithCancel(context.Background())
+
 		sim := engine.NewSimulationEngine(req.Graph, req.Config)
-		updateChan := make(chan models.SimulationFrame)
+		updateChan := make(chan models.SimulationFrame, 10) // buffered to avoid blocking engine
 
-		// Run simulation in a separate goroutine
 		go sim.Run(updateChan)
 
-		// Stream frames back to client
-		go func() {
-			for frame := range updateChan {
-				msg, _ := json.Marshal(frame)
-				if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-					log.Printf("Error writing frame to WS: %v", err)
+		// Stream frames to client until simulation ends or client disconnects
+		go func(ctx context.Context) {
+			for {
+				select {
+				case frame, ok := <-updateChan:
+					if !ok {
+						// Simulation complete — send done signal
+						doneMsg, _ := json.Marshal(map[string]string{"type": "simulation_complete"})
+						conn.WriteMessage(websocket.TextMessage, doneMsg)
+						return
+					}
+					msg, _ := json.Marshal(frame)
+					if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+						log.Printf("Error writing to WS: %v", err)
+						return
+					}
+				case <-ctx.Done():
+					log.Printf("Simulation cancelled")
 					return
 				}
 			}
-		}()
+		}(ctx)
 	}
 }

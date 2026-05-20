@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Rohan0639/system-design-simulator/backend/models"
@@ -17,12 +18,11 @@ const (
 )
 
 type Event struct {
-	Time       int64     // relative time in microseconds
-	Type       EventType
-	NodeID     string
-	RequestID  string
-	TargetNode string
-	index      int // for heap
+	Time      int64
+	Type      EventType
+	NodeID    string
+	RequestID string
+	index     int
 }
 
 type PriorityQueue []*Event
@@ -46,42 +46,52 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
+// FIX 1: nodeMetrics holds all counters as atomics to prevent race conditions.
+// int64 is required for atomic operations.
+type nodeMetrics struct {
+	currentRPS  int64
+	avgLatency  int64
+	queueDepth  int64
+	cacheHits   int64
+	cacheMisses int64
+	connections int64
+	droppedReqs int64
+	statusMu    sync.Mutex // mutex only for string status field
+	status      string
+}
+
 type SimulationEngine struct {
-	Graph  models.Graph
-	Config models.SimulationConfig
-	Events PriorityQueue
-	mu     sync.Mutex
-	
-	// Metrics state
-	Results map[string]*models.NodeStatus
+	Graph   models.Graph
+	Config  models.SimulationConfig
+	Events  PriorityQueue
+	eventMu sync.Mutex // FIX 1: mutex protecting the shared priority queue
+
+	metrics map[string]*nodeMetrics
 }
 
 func NewSimulationEngine(graph models.Graph, config models.SimulationConfig) *SimulationEngine {
+	metrics := make(map[string]*nodeMetrics)
+	for _, node := range graph.Nodes {
+		metrics[node.ID] = &nodeMetrics{status: "ok"}
+	}
 	return &SimulationEngine{
 		Graph:   graph,
 		Config:  config,
 		Events:  make(PriorityQueue, 0),
-		Results: make(map[string]*models.NodeStatus),
+		metrics: metrics,
 	}
 }
 
 func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
+	defer close(updateChan)
+
 	heap.Init(&e.Events)
 
-	// Initialize results
-	for _, node := range e.Graph.Nodes {
-		e.Results[node.ID] = &models.NodeStatus{
-			ID:     node.ID,
-			Status: "ok",
-		}
-	}
-
-	// Generate initial traffic from clients
+	// Generate initial traffic from client nodes
 	for _, node := range e.Graph.Nodes {
 		if node.Type == models.Client {
-			// Basic Poisson distribution or steady RPS
-			interval := 1000000 / e.Config.RPS // microseconds per request
-			for t := int64(0); t < int64(e.Config.Duration)*1000000; t += int64(interval) {
+			interval := int64(1000000 / e.Config.RPS)
+			for t := int64(0); t < int64(e.Config.Duration)*1000000; t += interval {
 				heap.Push(&e.Events, &Event{
 					Time:   t,
 					Type:   RequestArrive,
@@ -91,7 +101,6 @@ func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
 		}
 	}
 
-	// Simulation loop
 	currentTime := int64(0)
 	lastUpdate := int64(0)
 	lastRPSReset := int64(0)
@@ -102,15 +111,15 @@ func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
 
 		// Reset RPS counters every simulated second
 		if currentTime-lastRPSReset >= 1000000 {
-			for id := range e.Results {
-				e.Results[id].CurrentRPS = 0
+			for _, m := range e.metrics {
+				atomic.StoreInt64(&m.currentRPS, 0)
 			}
 			lastRPSReset = currentTime
 		}
 
-		e.handleEvent(event)
+		e.handleEvent(event, currentTime)
 
-		// Send frames every 100ms of simulated time
+		// Send telemetry frame every 100ms of simulated time
 		if currentTime-lastUpdate > 100000 {
 			frame := models.SimulationFrame{
 				Time:  int(currentTime / 1000),
@@ -118,62 +127,138 @@ func (e *SimulationEngine) Run(updateChan chan models.SimulationFrame) {
 			}
 			updateChan <- frame
 			lastUpdate = currentTime
-			
-			// Slow down the simulation for visual effect (Real-time mode)
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
+
+	// Send final frame
+	updateChan <- models.SimulationFrame{
+		Time:  int(currentTime / 1000),
+		Nodes: e.getCurrentStatus(),
+	}
 }
 
-func (e *SimulationEngine) handleEvent(event *Event) {
+func (e *SimulationEngine) handleEvent(event *Event, currentTime int64) {
 	node := e.findNode(event.NodeID)
 	if node == nil {
 		return
 	}
-
-	switch event.Type {
-	case RequestArrive:
-		e.processArrival(node, event)
+	if event.Type == RequestArrive {
+		e.processArrival(node, event, currentTime)
 	}
 }
 
-func (e *SimulationEngine) processArrival(node *models.Node, event *Event) {
-	// Simple Capacity Check
-	// In a real DES, we'd check queue size and process time
-	// For this version, let's calculate status based on local window
-	
-	// Simulation logic: Find next hop
+// FIX 2: Each node type has its own processing logic
+func (e *SimulationEngine) processArrival(node *models.Node, event *Event, currentTime int64) {
+	m := e.metrics[node.ID]
+
+	switch node.Type {
+
+	case models.Cache, models.CDN:
+		// Cache: check hit ratio. Hit = serve fast. Miss = pass to next node with penalty.
+		hitRatio := node.HitRatio
+		if hitRatio == 0 {
+			hitRatio = 0.8 // default 80% cache hit rate
+		}
+		if rand.Float64() < hitRatio {
+			atomic.AddInt64(&m.cacheHits, 1)
+			atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
+		} else {
+			atomic.AddInt64(&m.cacheMisses, 1)
+			// Cache miss: higher latency, still forward to next node
+			atomic.StoreInt64(&m.avgLatency, int64(node.Latency*3))
+			e.forwardToNextNode(node, event, currentTime, node.Latency*3)
+			return
+		}
+
+	case models.Database, models.Storage:
+		// Database: connection pool limit. Exceeding = hard rejection, not just slowdown.
+		maxConn := node.MaxConnections
+		if maxConn == 0 {
+			maxConn = node.Capacity // fallback
+		}
+		currentConn := atomic.AddInt64(&m.connections, 1)
+		defer atomic.AddInt64(&m.connections, -1)
+
+		if currentConn > int64(maxConn) {
+			// Hard reject — connection pool exhausted
+			atomic.AddInt64(&m.droppedReqs, 1)
+			m.statusMu.Lock()
+			m.status = "overloaded"
+			m.statusMu.Unlock()
+			atomic.StoreInt64(&m.avgLatency, int64(node.Latency*4))
+			return
+		}
+
+	case models.Queue:
+		// Queue: accumulate backlog. Drop when full.
+		maxDepth := node.MaxQueueDepth
+		if maxDepth == 0 {
+			maxDepth = node.Capacity
+		}
+		depth := atomic.AddInt64(&m.queueDepth, 1)
+		if depth > int64(maxDepth) {
+			atomic.AddInt64(&m.droppedReqs, 1)
+			atomic.AddInt64(&m.queueDepth, -1)
+			m.statusMu.Lock()
+			m.status = "overloaded"
+			m.statusMu.Unlock()
+			return
+		}
+		// Queue drains slowly — simulate processing delay
+		atomic.StoreInt64(&m.avgLatency, int64(node.Latency)+(depth*2))
+
+	case models.LoadBalancer:
+		// Load balancer: distribute evenly, very low latency overhead
+		atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
+
+	default:
+		// API Server, Client: standard RPS-based capacity check
+		atomic.StoreInt64(&m.avgLatency, int64(node.Latency))
+	}
+
+	// FIX 1: Atomic increment — safe across goroutines
+	rps := atomic.AddInt64(&m.currentRPS, 1)
+
+	// Update status based on load
+	m.statusMu.Lock()
+	if rps > int64(node.Capacity) {
+		m.status = "overloaded"
+		atomic.StoreInt64(&m.avgLatency, int64(node.Latency*2))
+	} else if rps > int64(node.Capacity/2) {
+		m.status = "warning"
+		atomic.StoreInt64(&m.avgLatency, int64(float64(node.Latency)*1.2))
+	} else {
+		m.status = "ok"
+	}
+	m.statusMu.Unlock()
+
+	e.forwardToNextNode(node, event, currentTime, int(atomic.LoadInt64(&m.avgLatency)))
+}
+
+func (e *SimulationEngine) forwardToNextNode(node *models.Node, event *Event, currentTime int64, latencyMs int) {
 	edges := e.findOutgoingEdges(node.ID)
 	if len(edges) == 0 {
 		return
 	}
 
-	// Distribute to next hop (Round Robin or Random)
-	targetEdge := edges[rand.Intn(len(edges))]
-	
-	// Add delay based on node latency
+	// Load balancer distributes round-robin style; others pick random
+	var targetEdge models.Edge
+	if node.Type == models.LoadBalancer {
+		rps := atomic.LoadInt64(&e.metrics[node.ID].currentRPS)
+		targetEdge = edges[rps%int64(len(edges))]
+	} else {
+		targetEdge = edges[rand.Intn(len(edges))]
+	}
+
+	// FIX 1: Lock the priority queue before pushing new event
+	e.eventMu.Lock()
 	heap.Push(&e.Events, &Event{
-		Time:   event.Time + int64(node.Latency*1000),
+		Time:   currentTime + int64(latencyMs*1000),
 		Type:   RequestArrive,
 		NodeID: targetEdge.Target,
 	})
-	
-	// Update node metrics
-	e.Results[node.ID].CurrentRPS++
-	
-	// Base latency
-	e.Results[node.ID].AvgLatency = node.Latency
-
-	if e.Results[node.ID].CurrentRPS > node.Capacity {
-		e.Results[node.ID].Status = "overloaded"
-		// Penalize latency when overloaded (simulating queue backup)
-		e.Results[node.ID].AvgLatency = node.Latency * 2
-	} else if e.Results[node.ID].CurrentRPS > node.Capacity/2 {
-		e.Results[node.ID].Status = "warning"
-		e.Results[node.ID].AvgLatency = int(float64(node.Latency) * 1.2)
-	} else {
-		e.Results[node.ID].Status = "ok"
-	}
+	e.eventMu.Unlock()
 }
 
 func (e *SimulationEngine) findNode(id string) *models.Node {
@@ -197,8 +282,22 @@ func (e *SimulationEngine) findOutgoingEdges(nodeID string) []models.Edge {
 
 func (e *SimulationEngine) getCurrentStatus() []models.NodeStatus {
 	var statuses []models.NodeStatus
-	for _, status := range e.Results {
-		statuses = append(statuses, *status)
+	for id, m := range e.metrics {
+		m.statusMu.Lock()
+		status := m.status
+		m.statusMu.Unlock()
+
+		statuses = append(statuses, models.NodeStatus{
+			ID:          id,
+			Status:      status,
+			CurrentRPS:  int(atomic.LoadInt64(&m.currentRPS)),
+			AvgLatency:  int(atomic.LoadInt64(&m.avgLatency)),
+			QueueDepth:  int(atomic.LoadInt64(&m.queueDepth)),
+			CacheHits:   int(atomic.LoadInt64(&m.cacheHits)),
+			CacheMisses: int(atomic.LoadInt64(&m.cacheMisses)),
+			Connections: int(atomic.LoadInt64(&m.connections)),
+			DroppedReqs: int(atomic.LoadInt64(&m.droppedReqs)),
+		})
 	}
 	return statuses
 }

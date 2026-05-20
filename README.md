@@ -2,6 +2,8 @@
 
 **A high-performance observability and simulation engine for architecting scalable distributed systems.**
 
+[**🚀 View Live Demo**](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)
+
 ---
 
 ## 🎯 Project Overview
@@ -105,7 +107,7 @@ npm run dev
 ### Production Deployment
 This project is configured for split deployment:
 - **Backend**: Deployed on **Render** (via `render.yaml`) to support persistent WebSockets.
-- **Frontend**: Deployed on **Vercel** or **Render** (Root directory: `frontend`).
+- **Frontend**: Deployed on **Vercel** ([Live Link](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)) (Root directory: `frontend`).
 
 For detailed instructions, see [deployment_guide.md](./deployment_guide.md).
 
