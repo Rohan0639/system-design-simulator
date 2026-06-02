@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"github.com/Rohan0639/system-design-simulator/backend/handlers"
 	"github.com/Rohan0639/system-design-simulator/backend/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 )
@@ -21,8 +24,45 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+var rdb *redis.Client
+
+func initRedis() {
+	redisUrl := os.Getenv("REDIS_URL")
+	if redisUrl == "" {
+		redisUrl = "localhost:6379"
+	}
+	rdb = redis.NewClient(&redis.Options{
+		Addr: redisUrl,
+	})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Warning: Failed to connect to Redis at %s: %v. Running in local fallback mode.", redisUrl, err)
+		rdb = nil
+	} else {
+		log.Printf("Connected to Redis at %s", redisUrl)
+	}
+}
+
 func main() {
 	godotenv.Load()
+
+	role := flag.String("role", "api", "Role to run: api or worker")
+	flag.Parse()
+
+	envRole := os.Getenv("ROLE")
+	if envRole != "" {
+		*role = envRole
+	}
+
+	initRedis()
+
+	if *role == "worker" {
+		runWorker()
+	} else {
+		runAPI()
+	}
+}
+
+func runAPI() {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
@@ -37,7 +77,7 @@ func main() {
 	})
 
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		c.JSON(200, gin.H{"status": "ok", "mode": "scalable-api"})
 	})
 
 	r.GET("/ws", handleWebSocket)
@@ -48,8 +88,14 @@ func main() {
 		port = p
 	}
 
-	log.Println("Server starting on :" + port)
+	log.Println("API Server starting on :" + port)
 	r.Run(":" + port)
+}
+
+type SimulationRequest struct {
+	SimID  string                  `json:"sim_id"`
+	Graph  models.Graph            `json:"graph"`
+	Config models.SimulationConfig `json:"config"`
 }
 
 func handleWebSocket(c *gin.Context) {
@@ -60,15 +106,19 @@ func handleWebSocket(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	// FIX: cancel context so goroutines stop cleanly when client disconnects
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	var pubsub *redis.PubSub
 
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Client disconnected: %v", err)
-			cancel() // stop any running simulation
+			cancel()
+			if pubsub != nil {
+				pubsub.Close()
+			}
 			break
 		}
 
@@ -87,39 +137,106 @@ func handleWebSocket(c *gin.Context) {
 			continue
 		}
 
-		log.Printf("Starting simulation: %d nodes, %d RPS, %ds duration",
-			len(req.Graph.Nodes), req.Config.RPS, req.Config.Duration)
+		simID := uuid.New().String()
+		log.Printf("Starting simulation request %s: %d nodes", simID, len(req.Graph.Nodes))
 
-		// Cancel previous simulation if still running
-		cancel()
+		cancel() // Cancel previous subscription/simulation
 		ctx, cancel = context.WithCancel(context.Background())
+		if pubsub != nil {
+			pubsub.Close()
+		}
+
+		if rdb != nil {
+			// Scalable Distributed mode
+			simReq := SimulationRequest{
+				SimID:  simID,
+				Graph:  req.Graph,
+				Config: req.Config,
+			}
+			payload, _ := json.Marshal(simReq)
+
+			// Subscribe first to ensure we don't miss the start
+			pubsub = rdb.Subscribe(ctx, "sim_updates:"+simID)
+			ch := pubsub.Channel()
+
+			// Publish to worker queue
+			rdb.Publish(ctx, "simulation_jobs", payload)
+
+			go func(ctx context.Context, ch <-chan *redis.Message) {
+				for {
+					select {
+					case msg := <-ch:
+						if msg.Payload == "DONE" {
+							doneMsg, _ := json.Marshal(map[string]string{"type": "simulation_complete"})
+							conn.WriteMessage(websocket.TextMessage, doneMsg)
+							return
+						}
+						conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+					case <-ctx.Done():
+						return
+					}
+				}
+			}(ctx, ch)
+
+		} else {
+			// Local fallback mode
+			sim := engine.NewSimulationEngine(req.Graph, req.Config)
+			updateChan := make(chan models.SimulationFrame, 10)
+
+			go sim.Run(updateChan)
+
+			go func(ctx context.Context) {
+				for {
+					select {
+					case frame, ok := <-updateChan:
+						if !ok {
+							doneMsg, _ := json.Marshal(map[string]string{"type": "simulation_complete"})
+							conn.WriteMessage(websocket.TextMessage, doneMsg)
+							return
+						}
+						msg, _ := json.Marshal(frame)
+						conn.WriteMessage(websocket.TextMessage, msg)
+					case <-ctx.Done():
+						log.Printf("Simulation %s cancelled", simID)
+						return
+					}
+				}
+			}(ctx)
+		}
+	}
+}
+
+func runWorker() {
+	if rdb == nil {
+		log.Fatal("Worker mode requires a running Redis instance")
+	}
+
+	log.Println("Starting Simulation Worker... waiting for jobs")
+	ctx := context.Background()
+	pubsub := rdb.Subscribe(ctx, "simulation_jobs")
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+	for msg := range ch {
+		var req SimulationRequest
+		if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
+			log.Printf("Worker error parsing job: %v", err)
+			continue
+		}
+
+		log.Printf("Worker picked up simulation %s", req.SimID)
 
 		sim := engine.NewSimulationEngine(req.Graph, req.Config)
-		updateChan := make(chan models.SimulationFrame, 10) // buffered to avoid blocking engine
+		updateChan := make(chan models.SimulationFrame, 10)
 
 		go sim.Run(updateChan)
 
-		// Stream frames to client until simulation ends or client disconnects
-		go func(ctx context.Context) {
-			for {
-				select {
-				case frame, ok := <-updateChan:
-					if !ok {
-						// Simulation complete — send done signal
-						doneMsg, _ := json.Marshal(map[string]string{"type": "simulation_complete"})
-						conn.WriteMessage(websocket.TextMessage, doneMsg)
-						return
-					}
-					msg, _ := json.Marshal(frame)
-					if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-						log.Printf("Error writing to WS: %v", err)
-						return
-					}
-				case <-ctx.Done():
-					log.Printf("Simulation cancelled")
-					return
-				}
-			}
-		}(ctx)
+		for frame := range updateChan {
+			framePayload, _ := json.Marshal(frame)
+			rdb.Publish(ctx, "sim_updates:"+req.SimID, framePayload)
+		}
+
+		rdb.Publish(ctx, "sim_updates:"+req.SimID, "DONE")
+		log.Printf("Worker finished simulation %s", req.SimID)
 	}
 }

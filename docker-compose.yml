@@ -1,12 +1,23 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - syssim-network
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - REDIS_URL=redis:6379
+    depends_on:
+      - redis
     networks:
       - syssim-network
 
