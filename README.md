@@ -1,8 +1,7 @@
 # ⚡ System Design Simulator
 
-**Live Links**
-*   **Frontend**: [Vercel Deployment](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)
-*   **Backend**: [Render Deployment](https://sys-design-sim-backend.onrender.com/health)
+**Live Link**
+*  https://system-design-simulator1-eta.vercel.app/
 
 ---
 
