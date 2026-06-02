@@ -15,7 +15,8 @@ import {
   Network,
   Cpu,
   Database,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store/useStore';
@@ -215,11 +216,58 @@ const analyzeArchitecture = (report: any, nodes: any[], edges: any[]): Architect
 export const SimulationSummaryBlock = ({ report, onClear }: SummaryProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'verdict' | 'topology' | 'prescription'>('verdict');
+  const [isOptimizing, setIsOptimizing] = useState(false);
   
-  const { metricsHistory, nodes, edges } = useStore();
+  const { metricsHistory, nodes, edges, generateAIDesign } = useStore();
+
+  // Run our advanced architectural compiler
+  const verdict = analyzeArchitecture(report, nodes, edges);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleAIOptimize = async () => {
+    setIsOptimizing(true);
+    try {
+      const currentNodes = nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        label: n.data?.label || n.type,
+        capacity: n.data?.capacity || 1000,
+        latency: n.data?.latency || 50
+      }));
+      const currentEdges = edges.map(e => ({
+        source: e.source,
+        target: e.target
+      }));
+
+      const recommendationsStr = verdict.recommendations.join('\n- ');
+      const bottleneckStr = report.bottleneckDetails?.map(b => `${b.label} (${b.type}): failed at ${b.rps} RPS (limit: ${b.capacity} RPS)`).join('\n') || 'None';
+
+      const optimizePrompt = `OPTIMIZE THIS CURRENT ARCHITECTURE DIAGRAM.
+Current Nodes: ${JSON.stringify(currentNodes)}
+Current Edges: ${JSON.stringify(currentEdges)}
+
+Simulation Results:
+- Health Score: ${report.healthScore}%
+- Peak Throughput: ${report.peakRps} RPS
+- Average Latency: ${report.avgLatency}ms
+- Bottlenecks Count: ${report.bottlenecks}
+- Critical Bottlenecks details:
+${bottleneckStr}
+
+Prescribed Actions:
+- ${recommendationsStr}
+
+Please redesign and optimize this architecture layout. Adjust node capabilities, add replication (such as adding multiple API servers behind a Load Balancer, cache nodes in front of databases), and resolve any bottlenecks completely. Return the updated design object following the absolute placement coordinates system.`;
+
+      await generateAIDesign(optimizePrompt);
+    } catch (err) {
+      console.error("AI Optimization failed:", err);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const handleDownloadLogs = () => {
@@ -240,8 +288,7 @@ export const SimulationSummaryBlock = ({ report, onClear }: SummaryProps) => {
     URL.revokeObjectURL(url);
   };
 
-  // Run our advanced architectural compiler
-  const verdict = analyzeArchitecture(report, nodes, edges);
+  // Verdict is compiled at the top of the component
 
   return (
     <div className="space-y-4 animate-in slide-in-from-right duration-500">
@@ -489,6 +536,31 @@ export const SimulationSummaryBlock = ({ report, onClear }: SummaryProps) => {
             ))}
           </div>
         )}
+        {/* Optimize Design Button */}
+        <div className="p-4 border-t border-border/20 bg-primary/5 hover:bg-primary/[0.08] transition-all">
+          <button
+            onClick={handleAIOptimize}
+            disabled={isOptimizing}
+            className={clsx(
+              "w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg outline-none",
+              isOptimizing
+                ? "bg-amber-500 text-white cursor-not-allowed animate-pulse"
+                : "bg-primary text-white hover:bg-primary/95 hover:scale-[1.01] active:scale-[0.99] shadow-primary/20"
+            )}
+          >
+            {isOptimizing ? (
+              <>
+                <Zap size={14} className="animate-spin text-white" />
+                OPTIMIZING ARCHITECTURE...
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} className="text-white" />
+                OPTIMIZE DESIGN WITH AI
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
