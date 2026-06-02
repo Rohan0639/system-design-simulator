@@ -12,6 +12,15 @@ System design is usually done on static whiteboards. When you draw an architectu
 
 ---
 
+## ✨ Key Features
+*   **Drag-and-Drop Canvas**: Intuitively build architectures with Databases, Load Balancers, API Gateways, and more.
+*   **AI Design Assistant**: Type a prompt (e.g., "Build a scalable e-commerce backend") and let Llama 3.3 generate the architecture for you.
+*   **Live Traffic Simulation**: Blast synthetic traffic (e.g., 10k RPS) through your graph and watch components react in real-time.
+*   **Intelligent Diagnostics**: Get graded (A to F) on your architecture with precise insights into bottlenecks and failure points.
+*   **Scalable Distributed Engine**: A high-performance Go simulation engine decoupled via Redis for massive concurrency.
+
+---
+
 ## 🛠️ Tech Stack
 *   **Frontend**: React 19, TypeScript, Zustand, React Flow (for visuals)
 *   **Backend**: Go (Gin Framework), WebSockets, Redis (for distributed worker architecture)
