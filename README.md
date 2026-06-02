@@ -3,7 +3,7 @@
 **A high-performance observability and simulation engine for architecting scalable distributed systems with AI-assisted design.**
 
 [![Vercel Deployment](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel&logoColor=white)](https://system-design-simulator1-git-main-rohan0639s-projects.vercel.app/)
-[![Backend Engine](https://img.shields.io/badge/Backend-Go%20(Gin)-blue?logo=go&logoColor=white)](https://sys-design-sim-backend.onrender.com/health)
+[![Backend Engine](https://img.shields.io/badge/Backend-Python%20(FastAPI)-blue?logo=python&logoColor=white)](https://sys-design-sim-backend.onrender.com/health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -23,9 +23,9 @@ It answers critical architectural questions: *“Will my database survive 10k RP
 *   **Big Left-Aligned Input**: Prompt input is integrated directly on the left of the toolbar for direct system synthesis.
 *   **Design Pattern Auditor**: Dynamically detects structural architectural patterns from your visual graphs, explaining the benefits and trade-offs of patterns like **Cache-Aside**, **Queue-Based Load Leveling**, **Edge-Accelerated Ingress**, and **Horizontal Compute Scaling**.
 
-### ⚡ 2. High-Performance Go Simulation Engine
-*   **Concurrency via Goroutines**: Built in **Go**, the backend models synthetic traffic as a series of probabilistic events across graph nodes, executing traversals and concurrency bottlenecks using lightweight goroutines.
-*   **Real-Time WebSocket Telemetry**: streams sub-100ms updates regarding component health, RPS, and individual traversal latencies.
+### ⚡ 2. High-Performance Python Simulation Engine
+*   **Thread-Safe Event Loop**: Built in **Python (FastAPI)**, the backend models synthetic traffic as a series of probabilistic events using an optimized, thread-safe discrete-event simulation (DES) running in an isolated background thread, ensuring the main asyncio event loop remains fully non-blocking and highly responsive.
+*   **Real-Time WebSocket Telemetry**: Streams sub-100ms updates regarding component health, RPS, and individual traversal latencies.
 
 ### 🛡️ 3. Backend Connection Resilience
 *   **Exponential Backoff Health Check**: Automatically pings the `/health` endpoint upon starting a simulation to handle cold starts (especially useful for Render free-tier deployments) with visual *Connecting...* indicators.
@@ -46,7 +46,7 @@ It answers critical architectural questions: *“Will my database survive 10k RP
 | :--- | :--- | :--- |
 | **Frontend** | React 19, TypeScript, Zustand | Global state & sub-100ms telemetry aggregation |
 | **Visuals** | React Flow, Vanilla CSS | Beautiful custom glassmorphism, responsive components, and node layouts |
-| **Backend** | Go (Gin Framework), WebSockets | Probabilistic traffic modeling and high-efficiency event processing |
+| **Backend** | Python (FastAPI Framework), WebSockets | Probabilistic traffic modeling and high-efficiency thread-safe event processing |
 | **AI Engine** | Groq API (Llama 3.3) | Prompt parsing, graph generation, and parameter optimization |
 | **Infrastructure** | Docker, Docker-Compose | Containerized deployment configurations |
 
@@ -55,20 +55,24 @@ It answers critical architectural questions: *“Will my database survive 10k RP
 ## 📂 Project Structure
 
 ```text
-├── backend/
-│   ├── engine/         # Core simulation logic (Goroutines & Graph Traversal)
-│   ├── handlers/       # WebSocket & AI API endpoints
-│   ├── models/         # Type definitions for Graphs and Metrics
-│   └── main.go         # Entry point & Router configuration
+├── backend-python/
+│   ├── app/
+│   │   ├── engine/       # Thread-safe discrete-event simulation core
+│   │   ├── handlers/     # WebSocket router, ConnectionManager & AI API handler
+│   │   ├── models/       # Graph schema validators & AI response schemas
+│   │   ├── middleware.py # Observability tracing (X-Request-ID & timing)
+│   │   └── main.py       # ASGI app lifespan & router container
+│   ├── tests/            # Automated test suite (19 integration tests)
+│   └── requirements.txt  # Python package dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ # Custom visual components (Header, Metrics, Verdict Panels)
-│   │   ├── nodes/      # React Flow custom node renders
-│   │   ├── store/      # Zustand state, health polling, and retry logic
-│   │   └── App.tsx     # Main dashboard orchestration layout
-│   ├── index.html      # Main HTML entry with custom title settings
-│   └── .env            # Environment configurations & Vercel notes
-└── docker-compose.yml  # Local multi-container development configuration
+│   │   ├── components/   # Custom visuals (Verdict Panels, Metrics Panels)
+│   │   ├── nodes/        # React Flow custom node renders
+│   │   ├── store/        # Zustand state store with health polling
+│   │   └── App.tsx       # Main dashboard layout orchestration
+│   ├── index.html        # Main HTML layout entry
+│   └── .env              # Environment configurations & local ports
+└── docker-compose.yml    # Containerized multi-service config
 ```
 
 ---
@@ -77,11 +81,17 @@ It answers critical architectural questions: *“Will my database survive 10k RP
 
 Both servers must be running locally to fully experience the real-time simulation and AI generation features.
 
-### Step 1: Run the Backend (Go)
+### Step 1: Run the Backend (Python)
 ```bash
-cd backend
-go mod download
-go run main.go
+cd backend-python
+python -m venv .venv
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8080
 ```
 *The server will start listening on port **`:8080`***.
 
@@ -91,12 +101,12 @@ cd frontend
 npm install
 npm run dev
 ```
-*The local development server will start, typically on **`http://localhost:5174`** or **`http://localhost:5173`***.
+*The local development server will start, typically on **`http://localhost:5173`***.
 
 ### Environment Variable Setup
 Ensure you configure your `frontend/.env` file:
 ```env
-# For local development pointing to local Go server
+# For local development pointing to local Python server
 VITE_API_URL=http://localhost:8080
 ```
 
@@ -110,7 +120,7 @@ This project utilizes a dual-provider split deployment strategy:
      *   *Environment Variable*: Set `VITE_API_URL` to your backend URL in the Vercel project dashboard.
      *   *Deployment Protection*: Turn off "Standard Protection" under Project Settings → Deployment Protection to allow public access.
 2.   **Backend**: Deployed on **Render** (as a Docker container web service).
-     *   *Dockerfile*: Auto-configured with `golang:1.25-alpine` to build the compiled Go execution binary.
+     *   *Dockerfile*: Multi-stage containerized build targeting `python:3.12-slim` to produce a fast, minimal runtime image.
      *   *Environment Variables*: Add `PORT=8080`, `XAI_ENDPOINT`, and `GROK_API_KEY` (secure as a secret).
 
 ---
