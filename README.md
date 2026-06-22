@@ -37,19 +37,4 @@ System design is usually done on static whiteboards. When you draw an architectu
 
 ---
 
-## 📂 Project Structure
-```text
-├── backend/
-│   ├── engine/         # Core Go simulation logic
-│   ├── handlers/       # WebSocket & AI API endpoints
-│   ├── main.go         # API Gateway & Redis Worker setup
-├── frontend/
-│   ├── src/
-│   │   ├── components/ # Custom visual components
-│   │   ├── nodes/      # React Flow custom node renders
-│   │   ├── store/      # Zustand state management
-│   │   └── App.tsx     # Main dashboard
-└── docker-compose.yml  # Local multi-container setup (API + Redis)
-```
 
----
