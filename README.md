@@ -21,14 +21,6 @@ System design is usually done on static whiteboards. When you draw an architectu
 
 ---
 
-## 🛠️ Tech Stack
-*   **Frontend**: React 19, TypeScript, Zustand, React Flow (for visuals)
-*   **Backend**: Go (Gin Framework), WebSockets, Redis (for distributed worker architecture)
-*   **AI Engine**: Groq API (Llama 3.3) for AI-assisted architecture design
-*   **Infrastructure**: Docker, Docker-Compose
-
----
-
 ## ⚙️ How It Works
 1.  **Design**: Drag and drop nodes (Databases, Load Balancers, API Gateways) on the canvas to build your architecture. You can also type a prompt and let AI generate the architecture for you.
 2.  **Simulate**: Click "Start Simulation" to blast synthetic traffic (e.g., 10,000 requests per second) through your graph.
