@@ -53,24 +53,3 @@ System design is usually done on static whiteboards. When you draw an architectu
 ```
 
 ---
-
-## 🏗️ Local Deployment
-
-The easiest way to run the entire project locally (including Redis and the Go backend) is using Docker Compose.
-
-**Step 1: Start the Backend and Redis**
-```bash
-docker-compose up --build
-```
-*The backend API will start on `http://localhost:8080`.*
-
-**Step 2: Start the Frontend**
-Open a new terminal window:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*The frontend will start on `http://localhost:5173` (or 5174).*
-
-*(Note: Ensure you have a `.env` file in the `frontend` folder with `VITE_API_URL=http://localhost:8080`)*
