@@ -27,6 +27,6 @@ System design is usually done on static whiteboards. When you draw an architectu
 3.  **Analyze**: The Go backend distributes the traffic probabilistically across your nodes using highly concurrent goroutines. It streams live telemetry (health, RPS, latency) back to the UI via WebSockets.
 4.  **Verdict**: The system grades your design (A to F) and tells you exactly what failed and how to fix it (e.g., "Database Starvation - Add a Redis Cache").
 
----
+
 
 
